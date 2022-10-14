@@ -1,0 +1,36 @@
+#ifndef _CPP_DECIMAL_
+#define _CPP_DECIMAL_
+#pragma once
+
+#include "DecFwd.hh"
+extern "C" {
+ #include "decimal32.h"
+ #include "decimal64.h"
+ #include "decimal128.h"
+}
+#include "DecContext.hh"
+#include "DecNumber.hh"
+#include "DecSingle.hh"
+#include "DecDouble.hh"
+#include "DecQuad.hh"
+#include "DecPacked.hh"
+
+
+namespace dec {
+
+  // CppDecimal types corresponding to decNumber types:
+  using decc = DecContext;
+  using decn = DecNumber;
+  using decs = DecSingle;
+  using decd = DecDouble;
+  using decq = DecQuad;
+  using decp = DecPacked;
+
+  // Data interchange types:
+  using dec32  = decimal32;
+  using dec64  = decimal64;
+  using dec128 = decimal128;
+
+}; // end namespace
+
+#endif /* Include guard */

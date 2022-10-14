@@ -1,0 +1,23 @@
+#include <decimal>
+#include <gtest/gtest.h>
+
+using namespace dec;
+
+
+TEST(DecimalTest, Inclusion) {
+  ASSERT_TRUE(sizeof(DecContext)==sizeof(decContext));
+  ASSERT_TRUE(sizeof(DecNumber)==sizeof(decNumber));
+  ASSERT_TRUE(sizeof(DecSingle)==sizeof(decSingle));
+  ASSERT_TRUE(sizeof(DecDouble)==sizeof(decDouble));
+  ASSERT_TRUE(sizeof(DecQuad)==sizeof(decQuad));
+
+
+  decn one{1};
+  decn two{2};
+  decn three{3.0};
+  decn four = 4;
+
+  ASSERT_TRUE(one + two == three);
+  ASSERT_TRUE(one + two != decn{"3.1"});
+  ASSERT_TRUE(one + three == four);
+}
