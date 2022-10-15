@@ -4,7 +4,7 @@
 using namespace dec;
 
 
-TEST(DecimalTest, Inclusion) {
+TEST(DecimalTests, Inclusion) {
   ASSERT_TRUE(sizeof(DecContext)==sizeof(decContext));
   ASSERT_TRUE(sizeof(DecNumber)==sizeof(decNumber));
   ASSERT_TRUE(sizeof(DecSingle)==sizeof(decSingle));
@@ -20,4 +20,17 @@ TEST(DecimalTest, Inclusion) {
   ASSERT_TRUE(one + two == three);
   ASSERT_TRUE(one + two != decn{"3.1"});
   ASSERT_TRUE(one + three == four);
+}
+
+
+TEST(DecimalTests, BasicUse) {
+  decd one{1}; 
+  decd two = 2.0;
+  decd three = one + two;  
+  EXPECT_TRUE(decn{3} == three);
+
+  decn e = 2.71828;       // Euler's number
+  decp pi{22.0/7.0};      // The Pi constant
+
+  ASSERT_TRUE(decn(3.14) != pi);
 }

@@ -1,0 +1,49 @@
+
+BUILDING
+~~~~~~~~
+CMake is now the preferred method of building and available accross all platforms.
+Recommended build and test steps (starting at the project root)
+
+1) cmake -B bld [-G <Generator> ]
+Where <Generator> is the CMAke generator of your choice. 
+"cmake --help" will provide you the list of generators available at the time.
+Typical uses are:
+cmake -B bld           # <= Windows with Visual Studio C++
+cmake -B bld -G Ninja  # <- MinGW with Ninja build
+
+This command will make the build system ready.
+
+Please note that CppDecimal has a dependancy to GoogleTest project and downloads it from github transparently.
+Thus, you need to have access to the network. Alternatively you can disable ENABLE_UNIT_TESTS option by turning it off.
+
+
+2) cmake --build bld -v
+This command will build the CppDecimal project on your computer/platform with the choses compiler and build system.
+
+
+TESTING
+~~~~~~~
+
+3) ctext --test-dir bld -V
+
+This command will run all defined unit tests. Please note on Windows you will be required to supply -C <Config> build config parameter
+if you are using Visual Studio. This flag typically takes the form of "-C Debug" or "-C Release".
+
+
+USING CppDecimal LIBRARY
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Although most of the functionality of the CppDecimal are in header files and in inline functions, you are still required to link with it.
+Hence the usage pattern is
+
+a) Include the header file and use the namespace in your project:
+#include <decimal>
+using namespace dec;
+
+b) Instruct your build configuration to locate the header files:
+-I CppDecimal/src
+
+c) Instruct your build configuratin to locate the library file:
+-L CppDecimal/bld/src -ldecimal
+
+
