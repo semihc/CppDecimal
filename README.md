@@ -2,7 +2,7 @@
 
 ## Overview
 
-The CppDecimal is a C++ library which encapsulates, augments, elevates the IBM decNumber library to the C++ language. Even though decNumber is excellent library which provides near complete impelementation of IEEE 754-2019 and ISO/IEC 60559:2020 decimal arithmetic specifications, using it in a way that is compatible C++ standard library is not easy due to fact that it has been implemented in ANSI C.
+The CppDecimal is a C++ library which encapsulates, augments, elevates the IBM decNumber library to the C++ language. Even though decNumber is excellent library which provides near complete implementation of IEEE 754-2019 and ISO/IEC 60559:2020 decimal arithmetic specifications, using it in a way that is compatible C++ standard library is not easy due to fact that it has been implemented in ANSI C.
 
 Hence, the overall design goal of the CppDecimal project is to provide decimal arithmetic types that is compatible with C++ language rules, recent C++ standards, C++/STL standard library containers, algorithms and finally expectations of the C++ community. In summary CppDecimal aims to provide decimal arithmatic types, modules and data interchange formats in way that we as C++ programmers has been accustomed to, similar to what we have been using with (float/double/long double) C++ language types.
 
@@ -40,14 +40,17 @@ Most functions in the decNumber module take as an argument a decContext structur
 
 The decNumber representation is variable-length and machine-dependent (for example, it contains integers which may be big-endian or little-endian).
 
-In addition to the arbitrary-precision decNumber format, three fixed-size compact formats are provided for conversions and interchange.[3]  These formats are endian-dependent but otherwise are machine-independent:
+In addition to the arbitrary-precision decNumber format, three fixed-size compact formats are provided for conversions and interchange [2].  These formats are endian-dependent but otherwise are machine-independent:
 
 **decimal32**
 a 32-bit decimal floating-point representation which provides 7 decimal digits of precision in a compressed format
+
 **decimal64**
 a 64-bit decimal floating-point representation which provides 16 decimal digits of precision in a compressed format
+
 **decimal128**
 a 128-bit decimal floating-point representation which provides 34 decimal digits of precision in a compressed format.
+
 A fourth, machine-independent, Binary Coded Decimal (BCD) format is also provided:
 
 **decPacked**
@@ -57,8 +60,10 @@ The decimal32, decimal64, and decimal128 formats are also supported directly by 
 
 **decSingle**
 a module that provides the functions for the decimal32 format; this format is intended for storage and interchange only and so the module provides utilities and conversions but no arithmetic functions
+
 **decDouble**
 a module that provides the functions for the decimal64 format; this format is an IEEE 754 basic format and so a full set of arithmetic and other functions is included
+
 **decQuad**
 a module that provides the functions for the decimal128 format; this format is an IEEE 754 basic format; it contains the same set of functions as decDouble.[4] 
 These modules use the same context mechanism (decContext) as decNumber and so can be used together with the decNumber module when required in order to use the mathematical functions in that module or to use its arbitrary-precision capability.
@@ -72,7 +77,7 @@ the floating-point decimal arithmetic defined in ANSI X3.274-1996[4]  (including
 
 ## decFloats modules
 The decFloats modules are decSingle, decDouble, and decQuad. These are based on the 32-bit, 64-bit, and 128-bit decimal types in the IEEE 754 Standard for Floating Point Arithmetic.
-In contrast to the arbitrary-precision decNumber module, these modules work directly from the decimal-encoded formats designed by the IEEE 754 committee.[1] 
+In contrast to the arbitrary-precision decNumber module, these modules work directly from the decimal-encoded formats designed by the IEEE 754 committee.[1,4] 
 
 Conversions to and from the decNumber internal format are not needed (typically the numbers are represented internally in ‘unpacked’ BCD or in a base of some other power of ten), and no memory allocation is necessary, so these modules are much faster than using decNumber for implementing the types.
 
