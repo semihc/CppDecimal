@@ -4,7 +4,7 @@
 
 The CppDecimal is a C++ library which encapsulates, augments, elevates the IBM decNumber library to the C++ language. Even though decNumber is excellent library which provides near complete implementation of IEEE 754-2019 and ISO/IEC 60559:2020 decimal arithmetic specifications, using it in a way that is compatible C++ standard library is not easy due to fact that it has been implemented in ANSI C.
 
-Hence, the overall design goal of the CppDecimal project is to provide decimal arithmetic types that is compatible with C++ language rules, recent C++ standards, C++/STL standard library containers, algorithms and finally expectations of the C++ community. In summary CppDecimal aims to provide decimal arithmatic types, modules and data interchange formats in way that we as C++ programmers has been accustomed to, similar to what we have been using with (float/double/long double) C++ language types.
+Hence, the overall design goal of the CppDecimal project is to provide decimal arithmetic types that is compatible with C++ language rules, recent C++ standards, C++/STL standard library containers, algorithms and finally expectations of the C++ community. In summary CppDecimal aims to provide decimal arithmetic types, modules and data interchange formats in way that we as C++ programmers has been accustomed to, similar to what we have been using with (float/double/long double) C++ language types.
 
 ```c++
 #include <decimal>        // One inclusion is sufficient
@@ -92,6 +92,11 @@ The modules should therefore be usable on any platform with an ANSI C compiler t
 The decFloats modules define the data structures and a large set of functions for working directly with the same compressed formats as decimal32, decimal64, and decimal128. The names are different to allow them to be used stand-alone or with the decNumber module.
 
 These three modules all share many of the same functions (working on the different sizes of the formats). The decQuad module has all the same functions as decDouble except for two functions which would convert to or from a wider format. The decSingle module is a limited (‘storage’) format which has a only a few conversion and miscellaneous functions; it is intended that any computation be carried out in a wider format.
+
+## Acknowledgements
+
+We are grateful to Mike Cowlishaw et al. from IBM for making decNumber package available. 
+
 
 ## References
 
