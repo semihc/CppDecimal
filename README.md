@@ -1,10 +1,9 @@
 # CppDecimal
 
 ## Overview
+The CppDecimal is a C++ library which encapsulates, augments, elevates the IBM decNumber library to the C++ language. Even though decNumber is excellent library which provides near complete implementation of IEEE 754-2019 and ISO/IEC 60559:2020 decimal arithmetic specifications, using it in a way that is compatible with C++ standard library is not easy due to fact that it has been implemented in ANSI C.
 
-The CppDecimal is a C++ library which encapsulates, augments, elevates the IBM decNumber library to the C++ language. Even though decNumber is excellent library which provides near complete implementation of IEEE 754-2019 and ISO/IEC 60559:2020 decimal arithmetic specifications, using it in a way that is compatible C++ standard library is not easy due to fact that it has been implemented in ANSI C.
-
-Hence, the overall design goal of the CppDecimal project is to provide decimal arithmetic types that is compatible with C++ language rules, recent C++ standards, C++/STL standard library containers, algorithms and finally expectations of the C++ community. In summary CppDecimal aims to provide decimal arithmetic types, modules and data interchange formats in way that we as C++ programmers has been accustomed to, similar to what we have been using with (float/double/long double) C++ language types.
+Hence, the overall design goal of the CppDecimal project is to provide decimal arithmetic types which are compatible with C++ language rules, recent C++ standards, C++/STL standard library containers, algorithms and finally expectations of the C++ community. In summary CppDecimal aims to provide decimal arithmetic types, modules and data interchange formats in way that we as C++ programmers has been accustomed to, similar to what we have been using with floating point C++ language types (float/double/long double).
 
 ```c++
 #include <decimal>        // One inclusion is sufficient
@@ -21,7 +20,7 @@ using namespace dec;      // All CppDecimal types are in this namespace
 }
 ```
 
-In summary CppDecimal library aspires to provide decimal types that can directly replace standard floating point types which are provided by the C++ language (double et al.)
+In summary, the CppDecimal library aims to provide decimal types that can directly replace or extend standard floating point types which are provided by the C++ language (double et al.)
 
 ## decNumber Overview
 The decNumber library implements the General Decimal Arithmetic Specification[1,2] in ANSI C. This specification defines a decimal arithmetic which meets the requirements of commercial, financial, and human-oriented applications. It also matches the decimal arithmetic in the IEEE 754 Standard for Floating Point Arithmetic.[4] 
