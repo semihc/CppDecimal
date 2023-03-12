@@ -4,9 +4,12 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include "DecContext.hh"
+
 
 using namespace std;
 namespace fs = std::filesystem;
+using namespace dec;
 
 
 // Windows
@@ -155,7 +158,7 @@ int procTestCaseLine(string& line)
   int rv = 0;
 
 
-  if(line.find("--")>=0)
+  if(line.find("--") >= 0)
     line = regex_replace(line, rxcomment, "");
   /*-
   if(regex_search(line, match, rxcmntline)) {
@@ -201,6 +204,131 @@ int procTestCaseLine(string& line)
   rv = 1;
   cout << "UNRECOGNIZED LINE" << endl;
 
+  return rv;
+}
+
+
+int applyTestDirective(const string& dir, const string& val, DecContext& ctx)
+{
+  int rv = -1; // Return value error by default
+
+  // Flags required to construct context object
+  bool ok = true;
+
+  // Clear any status value left before
+  ctx.zeroStatus();
+  
+  //
+  // Mandatory directives
+  //
+  if(dir == "precision") {
+    // No operation to be done on context
+    unsigned pval = std::stoul(val);
+    ok = (pval > 0);
+    // Check if conversion is ok
+    if(ok) {
+      rv = 0;
+      if(pval < static_cast<unsigned>(DecNumDigits))
+        ctx.setDigits(pval);
+    }
+    else {
+      clog << "Precison value conversion failed: " << val;
+    }    
+  }
+  else if(dir == "rounding") {
+    rv = 0; // Assume success
+    if(val == "ceiling") {
+      ctx.setRound(DEC_ROUND_CEILING);
+    }
+    else if(val == "down") {
+      ctx.setRound(DEC_ROUND_DOWN);
+    }
+    else if(val == "floor") {
+      ctx.setRound(DEC_ROUND_FLOOR);
+    }
+    else if(val == "half_down") {
+      ctx.setRound(DEC_ROUND_HALF_DOWN);
+    }
+    else if(val == "half_even") {
+      ctx.setRound(DEC_ROUND_HALF_EVEN);
+    }
+    else if(val == "half_up") {
+      ctx.setRound(DEC_ROUND_HALF_UP);
+    }
+    else if(val == "up") {
+      ctx.setRound(DEC_ROUND_UP);
+    }
+    else if(val == "05up") {
+      ctx.setRound(DEC_ROUND_05UP);
+    }
+    else {
+      rv = -1;
+      clog << "Unknown value for rounding: " << val;
+    }
+  }
+  else if(dir == "maxexponent") {
+    int32_t emax = (int32_t)std::stoi(val);
+    if(ok) {
+      rv = 0;
+      ctx.setEmax(emax);
+    }
+    else {
+      clog << "Unrecognized maxexponent: " << val;
+    }
+  }
+  else if(dir == "minexponent") {
+    int32_t emin = (int32_t)std::stoi(val);
+    if(ok) {
+      rv = 0;
+      ctx.setEmin(emin);
+    }
+    else {
+      clog << "Unrecognized minexponent: " << val;
+    }
+  }
+
+  //
+  // Optional directives
+  //
+  if(dir == "version") {
+    // No operation for version, just store it
+    rv = 0;
+  }
+  else if(dir == "extended") {
+    uint8_t ext = static_cast<uint8_t>(std::stoi(val));
+    if(ok) {
+      rv = 0;
+      ctx.setExtended(ext); 
+    }
+    else
+      clog << "Unrecognized extended: " << val;
+  }
+  else if(dir == "clamp") {
+    uint8_t clp = static_cast<uint8_t>(std::stoi(val));
+    if(ok) {
+      rv = 0;
+      ctx.setClamp(clp); 
+    }
+    else
+      clog << "Unrecognized clamp: " << val;
+
+  }
+  else if(dir == "dectest") {
+    // Process the test cases in a file
+    rv = 0;
+    //TODO: Include the file
+  }
+
+
+  // Check if dir/value pair is recognized
+  if(rv != 0)
+    clog << "Unknown directive " << dir;
+  else {
+    //-m_curDirectives.insert(dir, val);
+    clog << "dir=" << dir << " val=" << val;
+  }
+
+  clog << "ctx=" << ctx;
   return rv;
 }
 
