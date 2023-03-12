@@ -4,12 +4,12 @@ BUILDING
 CMake is now the preferred method of building and available accross all platforms.
 Recommended build and test steps (starting at the project root)
 
-1) cmake -B bld [-G <Generator> ]
+1) cmake -S . -B bld [-G <Generator> ]
 Where <Generator> is the CMAke generator of your choice. 
 "cmake --help" will provide you the list of generators available at the time.
 Typical uses are:
-cmake -B bld           # <= Windows with Visual Studio C++
-cmake -B bld -G Ninja  # <- MinGW with Ninja build
+cmake -S. -B bld           # <= Windows with Visual Studio C++
+cmake -S. -B bld -G Ninja  # <- MinGW with Ninja build
 
 This command will make the build system ready.
 
@@ -24,7 +24,7 @@ This command will build the CppDecimal project on your computer/platform with th
 TESTING
 ~~~~~~~
 
-3) ctext --test-dir bld -V
+3) ctest --test-dir bld -V
 
 This command will run all defined unit tests. Please note on Windows you will be required to supply -C <Config> build config parameter
 if you are using Visual Studio. This flag typically takes the form of "-C Debug" or "-C Release".

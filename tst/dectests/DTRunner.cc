@@ -155,7 +155,8 @@ int procTestCaseLine(string& line)
   int rv = 0;
 
 
-  line = regex_replace(line, rxcomment, "");
+  if(line.find("--")>=0)
+    line = regex_replace(line, rxcomment, "");
   /*-
   if(regex_search(line, match, rxcmntline)) {
     //-cout << '0' << match.str(0) << endl;
@@ -179,12 +180,21 @@ int procTestCaseLine(string& line)
     return rv;
   }
   */
-  if(regex_search(line, match, rxdirective)) {
-    cout << "DIRECTIVE LINE (" << match.str(1) << ':' << match.str(2) << ')' << endl;
+  if(line.find(":", 1) > 0 && regex_search(line, match, rxdirective)) {
+    cout << "DIRECTIVE LINE: (" << match.str(1) << ':' << match.str(2) << ')' << endl;
     return rv;
   }
-  if(regex_search(line, match, rxtestcase)) {
-    cout << "TESTCASE LINE" << endl;
+  if(line.find("->", 1) > 0 && regex_search(line, match, rxtestcase)) {
+    cout << "TESTCASE LINE: (" 
+      << match.str(1) << ','
+      << match.str(2) << ','
+      << match.str(3) << ','
+      << match.str(4) << ','      
+      << match.str(5)
+      << "->"
+      << match.str(6) << ','
+      << match.str(7)
+      << ")" << endl;
     return rv;
   }
 
