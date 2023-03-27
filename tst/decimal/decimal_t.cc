@@ -27,7 +27,7 @@ TEST(DecimalTests, BasicUse) {
   decd one{1}; 
   decd two = 2.0;
   decd three = one + two;  
-  EXPECT_TRUE(decn{3} == three);
+  EXPECT_TRUE(decn{3} == static_cast<decn>(three));
 
   decn e = 2.71828;       // Euler's number
   decp pi{22.0/7.0};      // The Pi constant
