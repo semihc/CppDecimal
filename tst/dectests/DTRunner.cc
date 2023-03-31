@@ -299,6 +299,8 @@ DecNumber opDo(const string& op,
                DecNumber& n1, DecNumber& n2, DecNumber& n3,
                DecContext& c, string& rs)
 {
+  //- clog << "Operation: " << op << endl;
+
   //
   // Unary operations
   //
@@ -654,18 +656,19 @@ bool token2DecNumber(const string& token, const DecContext& ctx, DecNumber& num)
   DecContext c(ctx);
 
   DecNumber tnum;
-  tnum.fromString(tt.c_str(), &c);
+  tnum.fromString(tt.data(), &c);
   num = tnum;
 
   //TODO: Check if warning is necessary
   if(c.getStatus()) {
-    clog << "token2DecNumber "
-         << "tkn=" << token
-         << "ctx=" << c.statusToString()
+    clog << "token2DecNumber"
+         << " tkn=" << token
+         << " ctx=" << c.statusToString()
          << c.statusFlags()
-         << "val=" << tnum.toString();
+         << " val=" << tnum.toString()
+         << endl;
 
-    clog << "c=" << c << endl;
+    //- clog << "c=" << c << endl;
   }
   
   
@@ -781,12 +784,13 @@ int applyTestCase(const string& tc_id,
   */
   
   // Expected result will get maximum allowable precision
+  cc = ctx;
   cc.setEmax(DecMaxExponent); 
   cc.setEmin(DecMinExponent); 
   // Expected result should not be affected by current context
   if(tc_rv != "?") {
     ret = token2DecNumber(tc_rv, cc, e); // Expected result
-    clog << "cc: " << cc;
+    clog << "cc: " << cc << endl;
   }
   cc.zeroStatus(); // Clear status flag for next operation
   
@@ -796,7 +800,7 @@ int applyTestCase(const string& tc_id,
      tc_op=="apply") {
     op_precision_needed = true;
     is_rs_used = true;
-    std::erase(erv, '\'');
+    std::erase(erv, '\''); 
     //erv.erase(std::remove(erv.begin(), erv.end(), '\''), erv.end());
     //-res.remove(QChar('\''));
   }
@@ -805,10 +809,14 @@ int applyTestCase(const string& tc_id,
 
   ret = token2DecNumber(tc_a1, cc, n1);
   cc.zeroStatus(); // Clear status flag for next operation
-  ret = token2DecNumber(tc_a2, cc, n2);
-  cc.zeroStatus(); // Clear status flag for next operation
-  ret = token2DecNumber(tc_a3, cc, n3);
-  cc.zeroStatus(); // Clear status flag for next operation
+  if(!tc_a2.empty()) {
+    ret = token2DecNumber(tc_a2, cc, n2);
+    cc.zeroStatus(); // Clear status flag for next operation
+  }
+  if(!tc_a3.empty()) {
+    ret = token2DecNumber(tc_a3, cc, n3);
+    cc.zeroStatus(); // Clear status flag for next operation
+  }
 
   /*ERASE
   if(is_binary_op(op) ||
@@ -824,6 +832,9 @@ int applyTestCase(const string& tc_id,
 
   // Get context directives including precision
   getDirectivesContext(oc, true);
+  oc = ctx;
+  clog << "oc: " << oc << endl;
+
   // Perform the operation, obtain the result
   DecNumber r = opDo(tc_op,n1,n2,n3,oc,rs);
   
@@ -851,37 +862,37 @@ int applyTestCase(const string& tc_id,
       if(r.isNaN() && e.isNaN()) ret = true;
     }
   }
-  clog << "oc: " << oc;
+  //- clog << "oc: " << oc;
   if(ret) {
     //-clog << "PASS: " << tokens.join(",");
     clog << "PASS: " << tc_id << ' ';
     // Uncomment to receive more information about passing test cases: 
-    clog << "n1=" << n1.toString().data()
-             << "n2=" << n2.toString().data()
-             << "r="
+    clog << " n1=" << n1.toString().data()
+             << " n2=" << n2.toString().data()
+             << " r="
              << (is_rs_used ? rs.data() : r.toString().data())
-             << "e=" << e.toString().data()
-             << "prc=" << oc.getDigits()
-             << "ctx=" << (oc.getStatus() ? oc.statusToString() : 0)
-             << (is_rs_used ?  erv + "|" + rs : nullptr);
+             << " e=" << e.toString().data()
+             << " prc=" << oc.getDigits()
+             << " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
+             << (is_rs_used ?  erv + "|" + rs : "");
 
     return 0; // Success
   }
   else {
     //-clog << "FAIL: " << tokens.join(",");
     clog << "FAIL: " << tc_id << ' ';
-    clog << "n1=" << n1.toString().data()
-             << "n2=" << n2.toString().data()
-             << "n3=" << n3.toString().data()
-             << "r="
+    clog << " n1=" << n1.toString().data()
+             << " n2=" << n2.toString().data()
+             << " n3=" << n3.toString().data()
+             << " r="
              << (is_rs_used ? rs.data() : r.toString().data())
-             << "e=" << e.toString().data()
-             << "prc=" << oc.getDigits()
-             << "ctx=" << (oc.getStatus() ? oc.statusToString() : 0)
-             << (is_rs_used ?  erv + "|" + rs : nullptr);
+             << " e=" << e.toString().data()
+             << " prc=" << oc.getDigits()
+             << " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
+             << (is_rs_used ?  erv + "|" + rs : "");
 
     // Print out operation context
-    clog << "oc: " << oc;
+    //- clog << "oc: " << oc;
     // Print out prevailing context settings
     displayDirectivesContext();
     // Uncomment this if you want to stop the test cases after failure
