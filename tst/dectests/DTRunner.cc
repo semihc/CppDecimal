@@ -149,7 +149,10 @@ regex rxcmntline {R"(^(.*)(--.*)$)"};
 regex rxdirective {R"(\s*(\w+)\s*:\s*(\S+)\s*$)"};
 // Test case
 // id operation operand1 [operand2 operand3] -> result [conditions]
-regex rxtestcase {R"(\s*(\w+)\s*(\w+)\s*(\S+)\s*(\S+)?\s*(\S+)?\s*->\s*(\S+)\s*(\S+)?)"};
+// Fologing regex doesn't work due to non-greedy match
+//regex rxtestcase {R"(\s*(\S+)\s*(\S+)\s*(\S+)\s*(\S+)?\s*(\S+)?\s*->\s*(\S+)\s*(\S+)?)"};
+regex rxtestcase {R"(\s*(\w+)\s*(\w+)\s*(\S+)\s*(\S*)\s*(\S*)\s*->\s*(\S+)\s*(.*))"};
+//                      (id )   (op )   (op1)   (op2)   (op3)   ->   (res)   (cnd)
 
 
 bool iequals(const string& a, const string& b)
@@ -567,6 +570,15 @@ int QDecNumberTests::opTest(const QStringList& tokens)
 bool token2DecNumber(const string& token, const DecContext& ctx, DecNumber& num)
 {
   string tt = token;
+  char sq = '\''; // Single quote
+  char dq = '\"'; // Double quote
+
+  if(tt.find(sq) != string::npos)
+    std::erase(tt, sq); 
+
+  if(tt.find(dq) != string::npos)
+    std::erase(tt, sq); 
+
   /*
   // Deal with quotes, double quotes and escaped quotes
   if(tt.contains("''")) {
@@ -874,7 +886,8 @@ int applyTestCase(const string& tc_id,
              << " e=" << e.toString().data()
              << " prc=" << oc.getDigits()
              << " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
-             << (is_rs_used ?  erv + "|" + rs : "");
+             << (is_rs_used ?  erv + "|" + rs : "")
+             << endl;
 
     return 0; // Success
   }
@@ -889,7 +902,8 @@ int applyTestCase(const string& tc_id,
              << " e=" << e.toString().data()
              << " prc=" << oc.getDigits()
              << " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
-             << (is_rs_used ?  erv + "|" + rs : "");
+             << (is_rs_used ?  erv + "|" + rs : "")
+             << endl;
 
     // Print out operation context
     //- clog << "oc: " << oc;
@@ -951,7 +965,7 @@ int procTestCaseLine(string& line)
       string tc_op = match.str(2);  // Test case operation
       string tc_a1 = match.str(3);  // Argument #1 to the test case operation
       string tc_a2 = match.str(4);  // Argument #2 to the test case operation
-      string tc_a3 = match.str(3);  // Argument #3 to the test case operation
+      string tc_a3 = match.str(5);  // Argument #3 to the test case operation
       string tc_rv = match.str(6);  // Test case result or expected value
       string tc_cd = match.str(7);  // Test case conditions
     cout << "TESTCASE LINE: (" 
@@ -1005,7 +1019,12 @@ int testProcessDecTestFile()
   fs::path dectestFN = dectests_path ;
   dectestFN /= "dectest_sub";
   //dectestFN /= "testall0.decTest";
-  dectestFN /= "trim0.decTest"; 
+  //dectestFN /= "trim0.decTest"; 
+  //dectestFN /= "rounding0.decTest"; 
+
+  //dectestFN /= "abs0.decTest"; 
+  //dectestFN /= "add0.decTest"; 
+  dectestFN /= "base0.decTest";
 
   string dtfn = dectestFN.string();
   cout << dtfn << endl;
