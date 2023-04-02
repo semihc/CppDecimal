@@ -68,7 +68,16 @@ static inline std::string trim_copy(std::string s) {
     return s;
 }
 
+static void lowerCase1(string& s) {
+  std::transform(s.begin(), s.end(), s.begin(),
+                  [](unsigned char c){ return std::tolower(c); });
+}
 
+static void lowerCase(string& s)
+{
+  for(auto& c : s)
+    c = tolower(c);
+}
 
 
 void visit_directory1(fs::path const & dir)
@@ -151,8 +160,10 @@ regex rxdirective {R"(\s*(\w+)\s*:\s*(\S+)\s*$)"};
 // id operation operand1 [operand2 operand3] -> result [conditions]
 // Fologing regex doesn't work due to non-greedy match
 //regex rxtestcase {R"(\s*(\S+)\s*(\S+)\s*(\S+)\s*(\S+)?\s*(\S+)?\s*->\s*(\S+)\s*(\S+)?)"};
-regex rxtestcase {R"(\s*(\w+)\s*(\w+)\s*(\S+)\s*(\S*)\s*(\S*)\s*->\s*(\S+)\s*(.*))"};
-//                      (id )   (op )   (op1)   (op2)   (op3)   ->   (res)   (cnd)
+regex rxtestcase {R"(\s*(\w+)\s*(\w+)\s*(\S+|'\w+')\s*(\S*)\s*(\S*)\s*->\s*(\S+)\s*(.*))"};
+//                      (id )   (op )   (op1)         (op2)   (op3)   ->   (res)   (cnd)
+regex rxtestcase_lhs {R"(\s*(\w+)\s*(\S+)\s*(\S+)\s*(\S*)\s*(\S*))"};
+regex rxtestcase_rhs {R"(->\s*(\S+)\s*(.*))"};
 
 
 bool iequals(const string& a, const string& b)
@@ -168,12 +179,14 @@ bool iequals(const string& a, const string& b)
 static thread_local DecContext Ctx;
 
 
-int applyTestDirective(const string& dir, const string& val, DecContext& ctx)
+int applyTestDirective(string& dir, string& val, DecContext& ctx)
 {
   int rv = -1; // Return value error by default
 
   // Flags required to construct context object
   bool ok = true;
+
+  lowerCase(dir); // Convert to lower case for easy comparison
 
   // Clear any status value left before
   ctx.zeroStatus();
@@ -577,7 +590,9 @@ bool token2DecNumber(const string& token, const DecContext& ctx, DecNumber& num)
     std::erase(tt, sq); 
 
   if(tt.find(dq) != string::npos)
-    std::erase(tt, sq); 
+    std::erase(tt, dq); 
+  
+  //clog << "token=" << token << " tt=" << tt << endl;
 
   /*
   // Deal with quotes, double quotes and escaped quotes
@@ -747,28 +762,19 @@ void displayDirectivesContext()
 
 
 
-int applyTestCase(const string& tc_id, 
-                  const string& tc_op, 
-                  const string& tc_a1,
-                  const string& tc_a2,
-                  const string& tc_a3,
-                  const string& tc_rv,
-                  const string& tc_cd,
+int applyTestCase(string& tc_id, 
+                  string& tc_op, 
+                  string& tc_a1,
+                  string& tc_a2,
+                  string& tc_a3,
+                  string& tc_rv,
+                  string& tc_cd,
                   DecContext& ctx)
 {
   int rv = -1; // Return value error by default
   bool ret = false;
 
-  /*ERASE
-  QString id = tokens.at(0);
-  QString op = tokens.at(1).toLower();
-  QString opd1 = tokens.at(2);
-  QString opd2 = tokens.at(3);
-  QString opd3 = tokens.at(4);
-  QString res = tokens.at(5);
-  QString cond = tokens.at(6);
-  */
-  
+  lowerCase(tc_op); // Normalize the operation to lowercases
   
   DecNumber n1,n2,n3,e;
   // Conversion Context - needs high precision
@@ -802,7 +808,7 @@ int applyTestCase(const string& tc_id,
   // Expected result should not be affected by current context
   if(tc_rv != "?") {
     ret = token2DecNumber(tc_rv, cc, e); // Expected result
-    clog << "cc: " << cc << endl;
+    //clog << "cc: " << cc << endl;
   }
   cc.zeroStatus(); // Clear status flag for next operation
   
@@ -845,7 +851,7 @@ int applyTestCase(const string& tc_id,
   // Get context directives including precision
   getDirectivesContext(oc, true);
   oc = ctx;
-  clog << "oc: " << oc << endl;
+  //clog << "oc: " << oc << endl;
 
   // Perform the operation, obtain the result
   DecNumber r = opDo(tc_op,n1,n2,n3,oc,rs);
@@ -924,50 +930,57 @@ int procTestCaseLine(string& line)
 {
   cout << line << endl;
   smatch match;  
+  smatch match_lhs;  
+  smatch match_rhs;  
   int rv = 0;
   DecContext& ctx = Ctx;
 
 
-  if(line.find("--") >= 0)
-    line = regex_replace(line, rxcomment, "");
-  /*-
-  if(regex_search(line, match, rxcmntline)) {
-    //-cout << '0' << match.str(0) << endl;
-    //-cout << '1' << match.str(1) << endl;
-    line = match.str(1);
-    cout << "COMMENTED LINE: " << endl;
-    // Continue with section of line stripped out of comments
-    // Only if line has data in it
+  // COMMENTS
+  // Delimiter position
+  int dpos = line.find("--"); 
+  if( dpos >= 0) {
+    int qpos = line.rfind('\'', dpos); // Check if -- is inside quote
+    if( qpos > 0)
+      void; // NOP, Not really a comment
+    else
+      line = regex_replace(line, rxcomment, ""); // Remove comment for easy parsing
   }
-  */
-
   
+  // EMPTY LINE
   trim(line);
   if( line.empty() ) {
     cout << "EMPTY LINE" << endl; 
     return rv;
   }
-  /*
-  if(regex_search(line, match, rxempty)) {
-    cout << "EMPTY LINE" << endl;
-    return rv;
-  }
-  */
-  if(line.find(":", 1) > 0 && regex_search(line, match, rxdirective)) {
+
+  // DIRECTIVE  
+  if(line.rfind(':') > 0 && regex_search(line, match, rxdirective)) {
     string dir = match.str(1);
     string val = match.str(2);
     cout << "DIRECTIVE LINE: (" << dir << ':' << val << ')' << endl;
     rv = applyTestDirective(dir, val, ctx);
     return rv;
   }
-  if(line.find("->", 1) > 0 && regex_search(line, match, rxtestcase)) {
-      string tc_id = match.str(1);  // Test case id
-      string tc_op = match.str(2);  // Test case operation
-      string tc_a1 = match.str(3);  // Argument #1 to the test case operation
-      string tc_a2 = match.str(4);  // Argument #2 to the test case operation
-      string tc_a3 = match.str(5);  // Argument #3 to the test case operation
-      string tc_rv = match.str(6);  // Test case result or expected value
-      string tc_cd = match.str(7);  // Test case conditions
+
+  // TEST CASE
+  // delimiter position
+   dpos = line.rfind("->");
+  if( dpos > 0 ) {
+    string line_lhs = line.substr(0, dpos);
+    string line_rhs = line.substr(dpos);
+    bool matched_lhs = regex_search(line_lhs, match_lhs, rxtestcase_lhs);
+    bool matched_rhs = regex_search(line_rhs, match_rhs, rxtestcase_rhs);
+    //clog << "LHS " << matched_lhs << '|' << line_lhs << '|' << endl;
+    //clog << "RHS " << matched_rhs << '|' << line_rhs << '|' << endl; 
+    if(matched_lhs && matched_rhs) {
+      string tc_id = match_lhs.str(1);  // Test case id
+      string tc_op = match_lhs.str(2);  // Test case operation
+      string tc_a1 = match_lhs.str(3);  // Argument #1 to the test case operation
+      string tc_a2 = match_lhs.str(4);  // Argument #2 to the test case operation
+      string tc_a3 = match_lhs.str(5);  // Argument #3 to the test case operation
+      string tc_rv = match_rhs.str(1);  // Test case result or expected value
+      string tc_cd = match_rhs.str(2);  // Test case conditions
     cout << "TESTCASE LINE: (" 
       << tc_id << ','
       << tc_op << ','
@@ -978,12 +991,15 @@ int procTestCaseLine(string& line)
       << tc_rv << ','
       << tc_cd
       << ")" << endl;
+
     rv = applyTestCase(tc_id, tc_op, tc_a1, tc_a2, tc_a3, tc_rv, tc_cd, ctx);
     return rv;
+   }
   }
 
+  
   rv = 1;
-  cout << "UNRECOGNIZED LINE" << endl;
+  cout << "UNRECOGNIZED LINE " << dpos << '|' << line << '|' << endl;
 
   return rv;
 }
@@ -1024,7 +1040,10 @@ int testProcessDecTestFile()
 
   //dectestFN /= "abs0.decTest"; 
   //dectestFN /= "add0.decTest"; 
-  dectestFN /= "base0.decTest";
+  //dectestFN /= "base0.decTest";
+  //dectestFN /= "compare0.decTest";
+  //dectestFN /= "comparetotal0.decTest";
+  dectestFN /= "divide0.decTest";
 
   string dtfn = dectestFN.string();
   cout << dtfn << endl;
