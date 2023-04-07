@@ -1,13 +1,22 @@
 #include "DTRunner.hh"
+// Std includes
 #include <string>
 #include <regex>
 #include <iostream>
 #include <fstream>
 #include <filesystem>
 #include <vector>
+#include <stack>
+#include <cctype>
+#include <locale>
 #include <algorithm>
+// Prj includes
+#include <gtest/gtest.h>
 #include "DecContext.hh"
 #include "DecNumber.hh"
+#include "DecSingle.hh"
+#include "DecDouble.hh"
+#include "DecQuad.hh"
 
 
 using namespace std;
@@ -20,16 +29,13 @@ auto path_w = fs::path{"C:\\Users\\Marius\\Documents"};
 // POSIX
 auto path_p = fs::path{ "/home/marius/docs" };
 
+// Path of the Dectests
 fs::path dectests_path{ R"(C:\opt\CPP\CppDecimal\tst\dectests)" };
 
 
 
 
 // https://stackoverflow.com/questions/216823/how-to-trim-an-stdstring
-#include <algorithm> 
-#include <cctype>
-#include <locale>
-
 // trim from start (in place)
 static inline void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
@@ -79,45 +85,29 @@ static void lowerCase(string& s)
     c = tolower(c);
 }
 
-
-void visit_directory1(fs::path const & dir)
+bool iequals(const string& a, const string& b)
 {
-  if (fs::exists(dir) && fs::is_directory(dir))
-  {
-    for (auto const & entry : fs::directory_iterator(dir))
-    {
-      auto filename = entry.path().filename();
-      if (fs::is_directory(entry.status()))
-        std::cout << "[+]" << filename << '\n';
-      else if (fs::is_symlink(entry.status()))
-        std::cout << "[>]" << filename << '\n';
-      else if (fs::is_regular_file(entry.status()))
-        std::cout << " " << filename << '\n';
-      else
-        std::cout << "[?]" << filename << '\n';
-    }
-  }
+    return std::equal(a.begin(), a.end(),
+                      b.begin(), b.end(),
+                      [](char a, char b) {
+                          return tolower(a) == tolower(b);
+                      });
 }
 
-void visit_directory_rec(fs::path const & dir)
-{
-  if (fs::exists(dir) && fs::is_directory(dir))
-  {
-    for (auto const & entry :
-         fs::recursive_directory_iterator(dir))
-    {
-      auto filename = entry.path().filename();
-      if (fs::is_directory(entry.status()))
-        std::cout << "[+]" << filename << '\n';
-      else if (fs::is_symlink(entry.status()))
-        std::cout << "[>]" << filename << '\n';
-      else if (fs::is_regular_file(entry.status()))
-        std::cout << " " << filename << '\n';
-      else
-        std::cout << "[?]" << filename << '\n';
+
+// https://stackoverflow.com/questions/14265581/parse-split-a-string-in-c-using-string-delimiter-standard-c
+std::vector<std::string> split (const std::string &s, char delim) {
+    std::vector<std::string> result;
+    std::stringstream ss (s);
+    std::string item;
+
+    while (getline (ss, item, delim)) {
+        result.push_back (item);
     }
-  }
+
+    return result;
 }
+
 
 void visit_directory(
   fs::path const & dir,
@@ -147,6 +137,7 @@ void visit_directory(
 }
 
 
+
 //
 // Regex definitions for dectest file contents
 //
@@ -158,7 +149,7 @@ regex rxcmntline {R"(^(.*)(--.*)$)"};
 regex rxdirective {R"(\s*(\w+)\s*:\s*(\S+)\s*$)"};
 // Test case
 // id operation operand1 [operand2 operand3] -> result [conditions]
-// Fologing regex doesn't work due to non-greedy match
+// Following regex is abandoned to simplify
 //regex rxtestcase {R"(\s*(\S+)\s*(\S+)\s*(\S+)\s*(\S+)?\s*(\S+)?\s*->\s*(\S+)\s*(\S+)?)"};
 regex rxtestcase {R"(\s*(\w+)\s*(\w+)\s*(\S+|'\w+')\s*(\S*)\s*(\S*)\s*->\s*(\S+)\s*(.*))"};
 //                      (id )   (op )   (op1)         (op2)   (op3)   ->   (res)   (cnd)
@@ -166,20 +157,15 @@ regex rxtestcase_lhs {R"(\s*(\w+)\s*(\S+)\s*(\S+)\s*(\S*)\s*(\S*))"};
 regex rxtestcase_rhs {R"(->\s*(\S+)\s*(.*))"};
 
 
-bool iequals(const string& a, const string& b)
-{
-    return std::equal(a.begin(), a.end(),
-                      b.begin(), b.end(),
-                      [](char a, char b) {
-                          return tolower(a) == tolower(b);
-                      });
-}
+
 
 // Global DecContext
 static thread_local DecContext Ctx;
+static thread_local stack<DecContext> CtxStack;
 
 // Forward declarations
 int processDecTestFile(string& fileName);
+
 
 
 int applyTestDirective(string& dir, string& val, DecContext& ctx)
@@ -459,140 +445,13 @@ DecNumber opDo(const string& op,
   return DecNumber{};
 }
 
-/*
-int QDecNumberTests::opTest(const QStringList& tokens)
-{
-  QString id = tokens.at(0);
-  QString op = tokens.at(1).toLower();
-  QString opd1 = tokens.at(2);
-  QString opd2 = tokens.at(3);
-  QString opd3 = tokens.at(4);
-  QString res = tokens.at(5);
-  QString cond = tokens.at(6);
-  bool ret = false;
-  
-  QDecNumber n1,n2,n3,e;
-  // Conversion Context - needs high precision
-  QDecContext cc(DEC_INIT_DECIMAL128);
-  // Operation Context
-  QDecContext oc(DEC_INIT_DECIMAL128);
-  QString rs; // Result String
-  bool op_precision_needed = false;
-  bool is_rs_used = false; // Is result string used?
 
 
-  // Skip a testcase with # as any of the operands
-  for(int i=2; i<=4; i++)
-    if(QString('#')==tokens.at(i)) {
-      qDebug() << "SKIP(operand#): " << tokens.join(",");
-      return 0;
-    }
-  
-  // Expected result will get maximum allowable precision
-  cc.setEmax(QDecMaxExponent); 
-  cc.setEmin(QDecMinExponent); 
-  // Expected result should not be affected by current context
-  if(res != "?") {
-    ret = token2QDecNumber(res, cc, e); // Expected result
-    qDebug() << "cc: " << cc;
-  }
-  cc.zeroStatus(); // Clear status flag for next operation
-  
-  // Apply current context to operands now
-  if(op=="tosci" ||
-     op=="toeng" ||
-     op=="apply") {
-    op_precision_needed = true;
-    is_rs_used = true;
-    res.remove(QChar('\''));
-  }
-  getDirectivesContext(cc, op_precision_needed);
-
-  ret = token2QDecNumber(opd1, cc, n1);
-  cc.zeroStatus(); // Clear status flag for next operation
-
-  if(is_binary_op(op) ||
-     is_ternary_op(op)) {
-    ret = token2QDecNumber(opd2, cc, n2);
-    cc.zeroStatus();
-  }
-  if(is_ternary_op(op)) {
-    ret = token2QDecNumber(opd3, cc, n3);
-    cc.zeroStatus();
-  }
-
-  // Get context directives including precision
-  getDirectivesContext(oc, true);
-  // Perform the operation, obtain the result
-  QDecNumber r = op_do(op,n1,n2,n3,oc,rs);
-  
-  if(res=="?") { 
-    ret = true;
-    if(oc.status()) {
-      qDebug() << "runTestCase ctx=" << oc.statusToString()
-               << "flg=" << oc.statusFlags();
-    }
-  }
-  else {
-    if(op == "tosci" ||
-       op == "toeng" ||
-       op == "class" ) {
-      ret = (0==res.trimmed().compare(rs));
-      if(!ret)
-        // If false check the result is identical
-        // This is also acceptable as there might be more than
-        // one representation of same number
-        ret = r.compare(e, &oc).isZero();
-    }
-    else {
-      ret = r.compare(e, &oc).isZero();
-      if(r.isNaN() && e.isNaN()) ret = true;
-    }
-  }
-  qDebug() << "oc: " << oc;
-  if(ret) {
-    qDebug() << "PASS: " << tokens.join(",");
-    // Uncomment to receive more information about passing test cases: 
-    qDebug() << "n1=" << n1.toString().data()
-             << "n2=" << n2.toString().data()
-             << "r="
-             << (is_rs_used ? rs.toLocal8Bit().data() : r.toString().data())
-             << "e=" << e.toString().data()
-             << "prc=" << oc.digits()
-             << "ctx=" << (oc.status() ? oc.statusToString() : 0)
-             << (is_rs_used ?  res + "|" + rs : (const char*)0);
-
-    return 0; // Success
-  }
-  else {
-    qDebug() << "FAIL: " << tokens.join(",");
-    qDebug() << "n1=" << n1.toString().data()
-             << "n2=" << n2.toString().data()
-             << "n3=" << n3.toString().data()
-             << "r="
-             << (is_rs_used ? rs.toLocal8Bit().data() : r.toString().data())
-             << "e=" << e.toString().data()
-             << "prc=" << oc.digits()
-             << "ctx=" << (oc.status() ? oc.statusToString() : 0)
-             << (is_rs_used ?  res + "|" + rs : (const char*)0);
-
-    // Print out operation context
-    qDebug() << "oc: " << oc;
-    // Print out prevailing context settings
-    displayDirectivesContext();
-    // Uncomment this if you want to stop the test cases after failure
-    //qFatal("End");                    
-    return 1; // Failure
-  }
-  
-  return 0;
-}
-*/
-
-
-bool token2DecNumber(const string& token, const DecContext& ctx, DecNumber& num)
+bool token2DecNumber(const string& token, DecContext& ctx, DecNumber& num)
 {
   string tt = token;
+  
+  // Remote quotes
   char sq = '\''; // Single quote
   char dq = '\"'; // Double quote
 
@@ -604,76 +463,60 @@ bool token2DecNumber(const string& token, const DecContext& ctx, DecNumber& num)
   
   //clog << "token=" << token << " tt=" << tt << endl;
 
-  /*
-  // Deal with quotes, double quotes and escaped quotes
-  if(tt.contains("''")) {
-    tt.replace("''","'");
-    tt = tt.remove(0,1);
-    tt.chop(1);
-  }
-  else
-    tt.remove(QChar('\''));
+  
+  if(token.find('#') != string::npos) {
+    static regex expl{"#([0-9a-fA-F]+)"}; // explicit notation
+    static regex altn{"([0-9]+)#(.+)"};   // alternative notation
+    smatch match;
 
-  if(tt.contains("\"\"")) {
-    tt.replace("\"\"","\"");
-    tt = tt.remove(0,1);
-    tt.chop(1);   
-  }
-  else
-    tt.remove(QChar('\"'));
-
-  if(token.contains('#')) {
-    regex expl{"#([0-9a-fA-F]+)"}; // explicit notation
-    regex altn{"([0-9]+)#(.+)"};   // alternative notation
-
-    if(expl.exactMatch(token)) {
-      QString hexval = expl.cap(1); // get hex value
+    if(regex_search(token, match, expl)) {
+      string hexval = match.str(1); // get hex value
       switch(hexval.size()) {
         case 8: {
-          QDecSingle ds;
-          ds.fromHexString(hexval.toLocal8Bit().data());
-          num = ds.toQDecNumber();
+          DecSingle ds;
+          ds.fromHexString(hexval.data());
+          num = ds.toDecNumber();
           return true;
-          }      
+        }      
         case 16: {
-          QDecDouble dd;
-          dd.fromHexString(hexval.toLocal8Bit().data());
-          num = dd.toQDecNumber();
+          DecDouble dd;
+          dd.fromHexString(hexval.data());
+          num = dd.toDecNumber();
           return true;
         }
         case 32: {
-          QDecQuad dq;
-          dq.fromHexString(hexval.toLocal8Bit().data());
-          num = dq.toQDecNumber();
+          DecQuad dq;
+          dq.fromHexString(hexval.data());
+          num = dq.toDecNumber();
           return true;
         }
       } // end switch
     } // expl.
 
-    if(altn.exactMatch(token)) {
-      QString fmt = altn.cap(1); // get format size
-      QString val = altn.cap(2); // get number value in string
+    if(regex_search(token, match, expl)) {
+      string fmt = match.str(1); // get format size
+      string val = match.str(2); // get number value in string
 
-      uint fmtsize = fmt.toUInt();
+      int fmtsize = stoi(fmt.data());
       switch(fmtsize) {
         case 32: {
-          qDebug() << "fmt=" << fmt << "val=" << val;
-          QDecSingle ds(val.toLocal8Bit().data());
-          num = ds.toQDecNumber();
+          clog << "fmt=" << fmt << "val=" << val;
+          DecSingle ds(val.data());
+          num = ds.toDecNumber();
           return true;
         }
 
         case 64: {
-          qDebug() << "fmt=" << fmt << "val=" << val;
-          QDecDouble dd(val.toLocal8Bit().data());
-          num = dd.toQDecNumber();
+          clog << "fmt=" << fmt << "val=" << val;
+          DecDouble dd(val.data());
+          num = dd.toDecNumber();
           return true;
         }
 
         case 128: {
-          qDebug() << "fmt=" << fmt << "val=" << val;
-          QDecQuad dq(val.toLocal8Bit().data());
-          num = dq.toQDecNumber();
+          clog << "fmt=" << fmt << "val=" << val;
+          DecQuad dq(val.data());
+          num = dq.toDecNumber();
           return true;
         }
 
@@ -687,11 +530,16 @@ bool token2DecNumber(const string& token, const DecContext& ctx, DecNumber& num)
     return true;
       
   } // contains #
-  */
 
-  //-qDebug() << "ctx=" << ctx;
-  DecContext c(ctx);
+  if(token.find('?') != string::npos) {  
+    // ? in a token by itself
+    num.fromString("NaN");
+    return true;
+  }
 
+  // Anything else
+  //-DecContext c(ctx);
+  DecContext& c = ctx;
   DecNumber tnum;
   tnum.fromString(tt.data(), &c);
   num = tnum;
@@ -700,8 +548,9 @@ bool token2DecNumber(const string& token, const DecContext& ctx, DecNumber& num)
   if(c.getStatus()) {
     clog << "token2DecNumber"
          << " tkn=" << token
-         << " ctx=" << c.statusToString()
-         << c.statusFlags()
+         //<< " ctx=" << c.statusToString()
+         << " ctx_sts=" << c.getStatus()
+         << ' ' << c.statusFlags()
          << " val=" << tnum.toString()
          << endl;
 
@@ -759,15 +608,6 @@ int getDirectivesContext(DecContext& ctx, bool precision)
 
 void displayDirectivesContext()
 {
-  /*ERASE
-  QMapIterator<QString, QString> i(m_curDirectives);
-
-  qDebug() << "Currently valid context settings:";
-  while(i.hasNext()) {
-    i.next();
-    qDebug() << i.key() << '=' << i.value();
-  }
-  */
 }
 
 
@@ -797,22 +637,27 @@ int applyTestCase(string& tc_id,
   bool is_rs_used = false; // Is result string used?
 
 
+  /* ERASE
   // Skip a testcase with # as any of the operands
   string hashstr = "#";
   if(tc_a1==hashstr || tc_a2==hashstr || tc_a3==hashstr) {
     clog << "SKIP(operand#)" << endl;
     return 0;
   }
+  */
   
   // Expected result will get maximum allowable precision
   cc = ctx;
   cc.setEmax(DecMaxExponent); 
   cc.setEmin(DecMinExponent); 
   // Expected result should not be affected by current context
+  ret = token2DecNumber(tc_rv, cc, e); // Expected result
+  /*ERASE
   if(tc_rv != "?") {
     ret = token2DecNumber(tc_rv, cc, e); // Expected result
     //clog << "cc: " << cc << endl;
   }
+  */
   cc.zeroStatus(); // Clear status flag for next operation
   
   // Apply current context to operands now
@@ -829,26 +674,28 @@ int applyTestCase(string& tc_id,
   getDirectivesContext(cc, op_precision_needed);
 
   ret = token2DecNumber(tc_a1, cc, n1);
-  cc.zeroStatus(); // Clear status flag for next operation
+  //cc.zeroStatus(); // Clear status flag for next operation
   if(!tc_a2.empty()) {
     ret = token2DecNumber(tc_a2, cc, n2);
-    cc.zeroStatus(); // Clear status flag for next operation
+    //cc.zeroStatus(); // Clear status flag for next operation
   }
   if(!tc_a3.empty()) {
     ret = token2DecNumber(tc_a3, cc, n3);
-    cc.zeroStatus(); // Clear status flag for next operation
+    //cc.zeroStatus(); // Clear status flag for next operation
   }
 
 
   // Get context directives including precision
   getDirectivesContext(oc, true);
-  oc = ctx;
+  //oc = ctx;
+  oc = cc;
   //clog << "oc: " << oc << endl;
 
   // Perform the operation, obtain the result
   DecNumber r = opDo(tc_op,n1,n2,n3,oc,rs);
   
   if(tc_rv=="?") { 
+    // Result is undefined, therefore is true by default
     ret = true;
     if(oc.getStatus()) {
       clog << "applyTestCase ctx=" << oc.statusToString()
@@ -873,9 +720,28 @@ int applyTestCase(string& tc_id,
       if(r.isNaN() && e.isNaN()) ret = true;
     }
   }
-  //- clog << "oc: " << oc;
+  clog << "oc: " << oc << endl ;
+  if(!tc_cd.empty()) {
+    DecContext ctx;
+    //clog << tc_cd << endl;
+    vector<string> strvec = split(tc_cd, ' ');
+    for (auto cd : strvec) {
+      //clog << '\t' << cd << endl;
+      for(auto& c : cd) if(c=='_') c = ' '; // Replace _ with space in condition strings
+      ctx.setStatusFromString(cd.data());
+    }
+    uint32_t ctx_st = ctx.getStatus();
+    uint32_t oc_st = oc.getStatus();
+    if(oc_st != ctx_st)
+      clog << "WARNING: " << tc_cd << ' ' << oc_st << "!=" << ctx_st << endl;
+  }
+
+
+
+  EXPECT_TRUE(ret);
   if(ret) {
     //-clog << "PASS: " << tokens.join(",");
+    //-clog << "PASS: " << tc_id << ' ';
     clog << "PASS: " << tc_id << ' ';
     // Uncomment to receive more information about passing test cases: 
     clog << " n1=" << n1.toString().data()
@@ -884,7 +750,8 @@ int applyTestCase(string& tc_id,
              << (is_rs_used ? rs.data() : r.toString().data())
              << " e=" << e.toString().data()
              << " prc=" << oc.getDigits()
-             << " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
+             //<< " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
+             << " ctx_sts=" << oc.getStatus()
              << (is_rs_used ?  erv + "|" + rs : "")
              << endl;
 
@@ -900,7 +767,8 @@ int applyTestCase(string& tc_id,
              << (is_rs_used ? rs.data() : r.toString().data())
              << " e=" << e.toString().data()
              << " prc=" << oc.getDigits()
-             << " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
+             //<< " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
+             << " ctx_sts=" << oc.getStatus()
              << (is_rs_used ?  erv + "|" + rs : "")
              << endl;
 
@@ -1040,11 +908,11 @@ int testProcessDecTestFile()
   fs::path dectestFN = dectests_path ;
   dectestFN /= "dectest_sub";
   dectests_path = dectestFN;
-  //dectestFN /= "testall0.decTest";
+
   //dectestFN /= "trim0.decTest"; 
   //dectestFN /= "rounding0.decTest"; 
-
-  //dectestFN /= "abs0.decTest"; 
+  
+  dectestFN /= "abs0.decTest"; 
   //dectestFN /= "add0.decTest"; 
   //dectestFN /= "base0.decTest";
   //dectestFN /= "compare0.decTest";
@@ -1058,7 +926,8 @@ int testProcessDecTestFile()
   //dectestFN /= "log100.decTest";
   //dectestFN /= "max0.decTest";
   //dectestFN /= "min0.decTest";
-  dectestFN /= "testall0.decTest";
+  //dectestFN /= "randombound320.decTest";
+  //dectestFN /= "testall0.decTest";
 
   string dtfn = dectestFN.string();
   cout << dtfn << endl;

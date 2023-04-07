@@ -22,6 +22,9 @@
 # define DECMAXSTRSIZE 512
 #endif
 
+//! Needed for test cases
+#define DECSUBSET 1
+
 namespace dec {
 	
 //! Digits of decimal precision for DecNumber, decNumber.

@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
+add_compile_definitions(DECSUBSET=1)
+
 add_subdirectory(src)
 
 # We will use the network to fetch Google Test sources

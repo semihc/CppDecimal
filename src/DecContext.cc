@@ -49,6 +49,7 @@ string DecContext::statusFlags() const
   ostringstream os;
   const char sep = '|'; // Separator
 
+  os << sep;
   if(status & DEC_Conversion_syntax) 
     os << DEC_Condition_CS << sep;
   if(status & DEC_Division_by_zero)
@@ -82,9 +83,11 @@ string DecContext::statusFlags() const
   if(0==status)
     os << DEC_Condition_ZE << sep;
   
-  os << "0x" << ios::hex << status;
+  //os << "0x" << ios::hex << status;
+  os << status;
+  os << sep;
 
-  os.flush(); //??
+  //os.flush(); //??
   return os.str();
 }
 
