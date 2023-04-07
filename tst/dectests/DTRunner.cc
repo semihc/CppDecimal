@@ -20,7 +20,7 @@ auto path_w = fs::path{"C:\\Users\\Marius\\Documents"};
 // POSIX
 auto path_p = fs::path{ "/home/marius/docs" };
 
-auto dectests_path{ R"(C:\opt\CPP\CppDecimal\tst\dectests)"};
+fs::path dectests_path{ R"(C:\opt\CPP\CppDecimal\tst\dectests)" };
 
 
 
@@ -178,6 +178,9 @@ bool iequals(const string& a, const string& b)
 // Global DecContext
 static thread_local DecContext Ctx;
 
+// Forward declarations
+int processDecTestFile(string& fileName);
+
 
 int applyTestDirective(string& dir, string& val, DecContext& ctx)
 {
@@ -288,8 +291,15 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
   }
   else if(dir == "dectest") {
     // Process the test cases in a file
-    rv = 0;
-    //+TODO: Include the file
+    fs::path dectestFN = dectests_path;
+    dectestFN /= val ;
+    string dtfn = dectestFN.string();
+    string dtext = ".decTest";
+    if(dtfn.find(dtext) == string::npos)
+      dtfn += dtext; // if test file extension is not specifed, add it
+    rv = processDecTestFile(dtfn);
+    if(rv) clog << "Unable to process decTest file: " <<  dtfn << endl;
+    return rv;
   }
 
 
@@ -793,13 +803,6 @@ int applyTestCase(string& tc_id,
     clog << "SKIP(operand#)" << endl;
     return 0;
   }
-  /*ERASE
-  for(int i=2; i<=4; i++)
-    if(QString('#')==tokens.at(i)) {
-      qDebug() << "SKIP(operand#): " << tokens.join(",");
-      return 0;
-    }
-  */
   
   // Expected result will get maximum allowable precision
   cc = ctx;
@@ -836,17 +839,6 @@ int applyTestCase(string& tc_id,
     cc.zeroStatus(); // Clear status flag for next operation
   }
 
-  /*ERASE
-  if(is_binary_op(op) ||
-     is_ternary_op(op)) {
-    ret = token2DecNumber(tc_a2, cc, n2);
-    cc.zeroStatus();
-  }
-  if(is_ternary_op(op)) {
-    ret = token2QDecNumber(tc_a3, cc, n3);
-    cc.zeroStatus();
-  }
-  */
 
   // Get context directives including precision
   getDirectivesContext(oc, true);
@@ -859,8 +851,9 @@ int applyTestCase(string& tc_id,
   if(tc_rv=="?") { 
     ret = true;
     if(oc.getStatus()) {
-      clog << "runTestCase ctx=" << oc.statusToString()
-           << "flg=" << oc.statusFlags();
+      clog << "applyTestCase ctx=" << oc.statusToString()
+           << " flg=" << oc.statusFlags()
+           << endl;
     }
   }
   else {
@@ -1010,16 +1003,28 @@ int procTestCaseLine(string& line)
 
 int processDecTestFile(string& fileName)
 {
-  string line;
-  ifstream ifile(fileName);
   int rv = 1;
+  if(! std::filesystem::exists(fileName)) {
+    clog << "Unable to locate file " << fileName << endl;
+    return rv;
+  }
 
+  ifstream ifile(fileName);  
+  if(!ifile.good()) {
+    clog << "Unable to open file " << fileName << endl;
+    return rv;
+  }
+
+  string line;
   if(ifile.is_open()) {
     while(getline(ifile, line)) {
       rv = procTestCaseLine(line);
       if(rv) break;
     } // while
     ifile.close();
+  }
+  else {
+    clog << "File " << fileName << " is not open" << endl;
   }
 
   return rv;
@@ -1034,6 +1039,7 @@ int testProcessDecTestFile()
 {
   fs::path dectestFN = dectests_path ;
   dectestFN /= "dectest_sub";
+  dectests_path = dectestFN;
   //dectestFN /= "testall0.decTest";
   //dectestFN /= "trim0.decTest"; 
   //dectestFN /= "rounding0.decTest"; 
@@ -1043,7 +1049,16 @@ int testProcessDecTestFile()
   //dectestFN /= "base0.decTest";
   //dectestFN /= "compare0.decTest";
   //dectestFN /= "comparetotal0.decTest";
-  dectestFN /= "divide0.decTest";
+  //dectestFN /= "divide0.decTest";
+  //dectestFN /= "divideint0.decTest";
+  //dectestFN /= "exp0.decTest";
+  //dectestFN /= "fma0.decTest";
+  //dectestFN /= "inexact0.decTest";
+  //dectestFN /= "ln0.decTest";
+  //dectestFN /= "log100.decTest";
+  //dectestFN /= "max0.decTest";
+  //dectestFN /= "min0.decTest";
+  dectestFN /= "testall0.decTest";
 
   string dtfn = dectestFN.string();
   cout << dtfn << endl;
