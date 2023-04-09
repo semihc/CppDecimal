@@ -160,7 +160,7 @@ regex rxtestcase_rhs {R"(->\s*(\S+)\s*(.*))"};
 
 
 // Global DecContext
-static thread_local DecContext Ctx;
+static thread_local DecContext Ctx(DEC_INIT_DECIMAL128);
 static thread_local stack<DecContext> CtxStack;
 
 // Forward declarations
@@ -461,6 +461,7 @@ bool token2DecNumber(const string& token, DecContext& ctx, DecNumber& num)
   if(tt.find(dq) != string::npos)
     std::erase(tt, dq); 
   
+  DecContext& c = ctx;
   //clog << "token=" << token << " tt=" << tt << endl;
 
   
@@ -526,20 +527,32 @@ bool token2DecNumber(const string& token, DecContext& ctx, DecNumber& num)
 
     
     // '#' in a token by itself
-    num.fromString("NaN");
+    num.fromString(tt, &c);
+    /*ERASE
+    clog << " ctx_sts=" << c.getStatus()
+         << ' ' << c.statusFlags()
+         << " val=" << num.toString()
+         << endl;
+    */
     return true;
       
   } // contains #
 
-  if(token.find('?') != string::npos) {  
+  if(tt.find('?') != string::npos) {  
     // ? in a token by itself
-    num.fromString("NaN");
+    num.fromString(tt, &c);
+    /*ERASE
+    clog << " ctx_sts=" << c.getStatus()
+         << ' ' << c.statusFlags()
+         << " val=" << num.toString()
+         << endl;    
+    */
     return true;
   }
 
   // Anything else
   //-DecContext c(ctx);
-  DecContext& c = ctx;
+  //-DecContext& c = ctx;
   DecNumber tnum;
   tnum.fromString(tt.data(), &c);
   num = tnum;
@@ -629,36 +642,25 @@ int applyTestCase(string& tc_id,
   DecNumber n1,n2,n3,e;
   // Conversion Context - needs high precision
   DecContext cc(DEC_INIT_DECIMAL128);
+  uint32_t cc_sts; // Accumulated CC status code
   // Operation Context
   DecContext oc(DEC_INIT_DECIMAL128);
+  uint32_t oc_sts; // Accumulated OC status code
+
   string erv = tc_rv; // Expected result value
   string rs; // Result String
   bool op_precision_needed = false;
   bool is_rs_used = false; // Is result string used?
 
-
-  /* ERASE
-  // Skip a testcase with # as any of the operands
-  string hashstr = "#";
-  if(tc_a1==hashstr || tc_a2==hashstr || tc_a3==hashstr) {
-    clog << "SKIP(operand#)" << endl;
-    return 0;
-  }
-  */
-  
+ 
   // Expected result will get maximum allowable precision
-  cc = ctx;
+  //-cc = ctx;
   cc.setEmax(DecMaxExponent); 
   cc.setEmin(DecMinExponent); 
   // Expected result should not be affected by current context
   ret = token2DecNumber(tc_rv, cc, e); // Expected result
-  /*ERASE
-  if(tc_rv != "?") {
-    ret = token2DecNumber(tc_rv, cc, e); // Expected result
-    //clog << "cc: " << cc << endl;
-  }
-  */
   cc.zeroStatus(); // Clear status flag for next operation
+  cc_sts = 0;
   
   // Apply current context to operands now
   if(tc_op=="tosci" ||
@@ -675,21 +677,24 @@ int applyTestCase(string& tc_id,
 
   ret = token2DecNumber(tc_a1, cc, n1);
   //cc.zeroStatus(); // Clear status flag for next operation
+  cc_sts = cc.getStatus();
   if(!tc_a2.empty()) {
     ret = token2DecNumber(tc_a2, cc, n2);
     //cc.zeroStatus(); // Clear status flag for next operation
+    cc_sts |= cc.getStatus();
   }
   if(!tc_a3.empty()) {
     ret = token2DecNumber(tc_a3, cc, n3);
     //cc.zeroStatus(); // Clear status flag for next operation
+    cc_sts |= cc.getStatus();
   }
 
 
   // Get context directives including precision
   getDirectivesContext(oc, true);
-  //oc = ctx;
-  oc = cc;
-  //clog << "oc: " << oc << endl;
+  oc = ctx; // Get current global context by copying
+  oc.zeroStatus(); // Clear status flag for next operation
+  //-clog << "oc: " << oc << endl;
 
   // Perform the operation, obtain the result
   DecNumber r = opDo(tc_op,n1,n2,n3,oc,rs);
@@ -719,21 +724,25 @@ int applyTestCase(string& tc_id,
       ret = r.compare(e, &oc).isZero();
       if(r.isNaN() && e.isNaN()) ret = true;
     }
-  }
-  clog << "oc: " << oc << endl ;
-  if(!tc_cd.empty()) {
-    DecContext ctx;
+  }    
+  
+  oc_sts = oc.getStatus();
+  clog << "oc: " << oc << " oc_sts:" << oc_sts << endl ;
+  if(!tc_cd.empty() && tc_rv.find('?')<0) {
+    // Only inspect the test cases where result is not ? and conditions are empty
+    DecContext ec{oc};
+    ec.zeroStatus();
     //clog << tc_cd << endl;
     vector<string> strvec = split(tc_cd, ' ');
     for (auto cd : strvec) {
       //clog << '\t' << cd << endl;
       for(auto& c : cd) if(c=='_') c = ' '; // Replace _ with space in condition strings
-      ctx.setStatusFromString(cd.data());
+      ec.setStatusFromString(cd.data());
     }
-    uint32_t ctx_st = ctx.getStatus();
-    uint32_t oc_st = oc.getStatus();
-    if(oc_st != ctx_st)
-      clog << "WARNING: " << tc_cd << ' ' << oc_st << "!=" << ctx_st << endl;
+    uint32_t ec_sts = ec.getStatus();
+    uint32_t ac_sts = oc_sts; // cc_sts | oc_sts;
+    if(ac_sts != ec_sts)
+      clog << "WARNING: " << tc_cd << ' ' << cc_sts << ',' << ac_sts << "!=" << ec_sts << endl;
   }
 
 
@@ -912,7 +921,7 @@ int testProcessDecTestFile()
   //dectestFN /= "trim0.decTest"; 
   //dectestFN /= "rounding0.decTest"; 
   
-  dectestFN /= "abs0.decTest"; 
+  //dectestFN /= "abs0.decTest"; 
   //dectestFN /= "add0.decTest"; 
   //dectestFN /= "base0.decTest";
   //dectestFN /= "compare0.decTest";
@@ -927,7 +936,7 @@ int testProcessDecTestFile()
   //dectestFN /= "max0.decTest";
   //dectestFN /= "min0.decTest";
   //dectestFN /= "randombound320.decTest";
-  //dectestFN /= "testall0.decTest";
+  dectestFN /= "testall0.decTest";
 
   string dtfn = dectestFN.string();
   cout << dtfn << endl;

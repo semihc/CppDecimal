@@ -22,8 +22,16 @@
 # define DECMAXSTRSIZE 512
 #endif
 
-//! Needed for test cases
-#define DECSUBSET 1
+//! Extended flags are used by default
+#ifndef DECEXTFLAG
+# define DECEXTFLAG 1
+#endif
+
+//! DecSubset is used by default
+#ifndef DECSUBSET
+# define DECSUBSET 1
+#endif
+
 
 namespace dec {
 	
