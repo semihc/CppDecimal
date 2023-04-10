@@ -654,7 +654,7 @@ int applyTestCase(string& tc_id,
 
  
   // Expected result will get maximum allowable precision
-  //-cc = ctx;
+  cc = ctx;
   cc.setEmax(DecMaxExponent); 
   cc.setEmin(DecMinExponent); 
   // Expected result should not be affected by current context
@@ -702,11 +702,12 @@ int applyTestCase(string& tc_id,
   if(tc_rv=="?") { 
     // Result is undefined, therefore is true by default
     ret = true;
+    /*ERASE
     if(oc.getStatus()) {
       clog << "applyTestCase ctx=" << oc.statusToString()
            << " flg=" << oc.statusFlags()
            << endl;
-    }
+    } */
   }
   else {
     if(tc_op == "tosci" ||
@@ -727,9 +728,12 @@ int applyTestCase(string& tc_id,
   }    
   
   oc_sts = oc.getStatus();
-  clog << "oc: " << oc << " oc_sts:" << oc_sts << endl ;
-  if(!tc_cd.empty() && tc_rv.find('?')<0) {
-    // Only inspect the test cases where result is not ? and conditions are empty
+  clog << "oc: " << oc << " oc_sts:" << oc_sts;
+  if (oc_sts) clog << " flg=" << oc.statusFlags();
+  clog << endl ;
+
+  if(tc_cd.size() && tc_rv.find('?')==string::npos) {
+    // Only inspect the test cases where result is not ? and conditions are not empty
     DecContext ec{oc};
     ec.zeroStatus();
     //clog << tc_cd << endl;
@@ -739,10 +743,11 @@ int applyTestCase(string& tc_id,
       for(auto& c : cd) if(c=='_') c = ' '; // Replace _ with space in condition strings
       ec.setStatusFromString(cd.data());
     }
-    uint32_t ec_sts = ec.getStatus();
-    uint32_t ac_sts = oc_sts; // cc_sts | oc_sts;
+    uint32_t ec_sts = ec.getStatus();  // Expected status code
+    uint32_t ac_sts = oc_sts | cc_sts; // All status code = Operation | Conversion codes
     if(ac_sts != ec_sts)
-      clog << "WARNING: " << tc_cd << ' ' << cc_sts << ',' << ac_sts << "!=" << ec_sts << endl;
+      clog << "WARNING: " << tc_cd << ' ' << '(' << cc_sts << '|' << oc_sts << ") "
+           << ac_sts << "!=" << ec_sts << endl;
   }
 
 
@@ -936,6 +941,7 @@ int testProcessDecTestFile()
   //dectestFN /= "max0.decTest";
   //dectestFN /= "min0.decTest";
   //dectestFN /= "randombound320.decTest";
+  //dectestFN /= "quantize0.decTest";
   dectestFN /= "testall0.decTest";
 
   string dtfn = dectestFN.string();

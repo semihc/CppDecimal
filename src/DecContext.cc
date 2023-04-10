@@ -118,11 +118,11 @@ ostream& operator<<(ostream& os, const DecContext& ctx)
   os << "digits=" << ctx.digits
      << c << "emax=" << ctx.emax
      << c << "emin=" << ctx.emin
-     << c << "extended=" << ctx.extended
-     << c << "clamp=" << ctx.clamp
      << c << "round=" << ctx.round
      << c << "traps=" << ctx.traps
      << c << "status=" << ctx.status
+     << c << "clamp=" << (unsigned) ctx.clamp
+     << c << "extended=" << (unsigned) ctx.extended     
      << c << ctx.statusToString();
   
   return os;
