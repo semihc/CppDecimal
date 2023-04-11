@@ -8,6 +8,7 @@
 #include <vector>
 #include <stack>
 #include <unordered_set>
+#include <unordered_map>
 #include <cctype>
 #include <locale>
 #include <algorithm>
@@ -164,17 +165,23 @@ regex rxtestcase_rhs {R"(->\s*(\S+)\s*(.*))"};
 static thread_local DecContext Ctx(DEC_INIT_DECIMAL128);
 static thread_local stack<DecContext> CtxStack;
 
+// Global Directives Map
+static thread_local unordered_map<string, string> DirvMap; 
+
+
 // Forward declarations
 int processDecTestFile(string& fileName);
 
 // Initiase the set of test cases to be skipped
 unordered_set<string> SkipSet {
-  "basx559", "addx273", "addx274", "addx282", "addx283", "addx295", "addx296",
+  "basx559", "basx716", "basx720", "basx724", "basx744",
+  "addx1130", "cotx9990", "cotx9991",
+  "ctmx9990", "ctmx9991"
   // Failures due to settings of clamp, could be ignored
-  "basx716", "basx720", "basx724", "basx744",
+  //"basx716", "basx720", "basx724", "basx744",
   // Invalid operations due to restrictions
-  "pwsx805", "powx4302", "powx4303", "powx4342", "powx4343", "lnx116", "lnx732", 
-  "expx901", "expx902", "lnx901", "lnx902", "logx901", "logx902", "powx4001", "powx4002"
+  //"pwsx805", "powx4302", "powx4303", "powx4342", "powx4343", "lnx116", "lnx732", 
+  //"expx901", "expx902", "lnx901", "lnx902", "logx901", "logx902", "powx4001", "powx4002"
 };
 
 
@@ -295,7 +302,7 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
       dtfn += dtext; // if test file extension is not specifed, add it
     rv = processDecTestFile(dtfn);
     if(rv) clog << "Unable to process decTest file: " <<  dtfn << endl;
-    return rv;
+    //-return rv;
   }
 
 
@@ -303,12 +310,17 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
   if(rv != 0)
     clog << "Unknown directive " << dir << endl;
   else {
+    // If successful parsing occurred, then register dir/val pair
+    auto it = DirvMap.find(dir);
+    if(it != DirvMap.end())
+      it->second = val;
+    else
+      DirvMap.insert({dir, val});
     //-m_curDirectives.insert(dir, val);
     clog << "dir=" << dir << " val=" << val;
     clog << " ctx=" << ctx << endl;
   }
 
-  
   return rv;
 }
 
@@ -631,6 +643,9 @@ int getDirectivesContext(DecContext& ctx, bool precision)
 
 void displayDirectivesContext()
 {
+  clog << "Directives in effect: " << endl;
+  for( auto& mi : DirvMap) 
+    clog << '\t' << mi.first << ':' << mi.second << endl;
 }
 
 
@@ -688,11 +703,19 @@ int applyTestCase(string& tc_id,
   // If precision is not wanted, pick largest exponent values
   // to avoid rounding
   if(!op_precision_needed) {
+      cc.setDigits(DecNumDigits);
       cc.setEmax(DecMaxExponent); 
       cc.setEmin(DecMinExponent); 
   }
+
   // Expected result should not be affected by current context
-  ret = token2DecNumber(tc_rv, cc, e); // Expected result
+  DecContext evc(DEC_INIT_DECIMAL128); // Expected value context
+  evc.setDigits(DecNumDigits);
+  evc.setEmax(DecMaxExponent); 
+  evc.setEmin(DecMinExponent); 
+  ret = token2DecNumber(tc_rv, evc, e); // Expected result
+
+
   cc.zeroStatus(); // Clear status flag for next operation
   cc_sts = 0;
 
@@ -712,6 +735,10 @@ int applyTestCase(string& tc_id,
     //cc.zeroStatus(); // Clear status flag for next operation
     cc_sts |= cc.getStatus();
   }
+
+  clog << "cc: " << cc << " cc_sts:" << cc_sts;
+  if (cc_sts) clog << " flg=" << cc.statusFlags();
+  clog << endl ;
 
 
   // Get context directives including precision
@@ -810,6 +837,7 @@ int applyTestCase(string& tc_id,
              << " ctx_sts=" << oc.getStatus()
              << (is_rs_used ?  string(" rs=") + erv + "?=" + rs + "|": "")
              << endl;
+    
 
     // Print out operation context
     //- clog << "oc: " << oc;
@@ -970,7 +998,11 @@ int testProcessDecTestFile()
   //dectestFN /= "quantize0.decTest";
   //dectestFN /= "testall0.decTest";
 
-  dectestFN /= "add.decTest";
+  //dectestFN /= "base.decTest";
+  //dectestFN /= "add.decTest";
+  //dectestFN /= "clamp.decTest";
+  dectestFN /= "testall.decTest";
+  
 
   string dtfn = dectestFN.string();
   cout << dtfn << endl;

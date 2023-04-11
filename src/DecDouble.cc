@@ -12,6 +12,9 @@ extern "C" {
  #include "decimal64.h"
 }
 #include <cstdlib>
+#include <cstring>
+#include <cassert>
+#include <string>
 #include <iostream>
 #include "DecNumber.hh"
 #include "DecPacked.hh"
@@ -50,6 +53,12 @@ DecDouble& DecDouble::fromHexString(const char* str)
   for(; i<size; i++,j--)
     p[j] = ba.at(i);
   */
+
+  char *end = nullptr;
+  unsigned long long hv = strtoull(str, &end, 16);
+  clog << sizeof(hv) << ' ' << sizeof(m_data) << "hv=" << hv << endl;
+  assert(sizeof(hv)==sizeof(m_data));
+  memcpy(&m_data, &hv, sizeof(hv));
 
   return *this;
 }

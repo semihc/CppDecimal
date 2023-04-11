@@ -12,6 +12,8 @@ extern "C" {
  #include "decimal128.h"
 }
 #include <cstdlib>
+#include <cstring>
+#include <cassert>
 #include <iostream>
 #include "DecNumber.hh"
 #include "DecPacked.hh"
@@ -52,6 +54,7 @@ DecQuad& DecQuad::fromHexString(const char* str)
   for(; i<size; i++,j--)
     p[j] = ba.at(i);
   */
+  assert(0); // TBD
   return *this;
 }
 

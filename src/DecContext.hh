@@ -34,9 +34,9 @@ constexpr int DecContextDefKind = DEC_INIT_BASE;
 
 
 //! Maximum precision allowed in precision (digits) field
-constexpr int32_t DecMaxPrecision =  999999999;
-constexpr int32_t DecMaxExponent  =  999999999;
-constexpr int32_t DecMinExponent  = -999999999;
+constexpr int32_t DecMaxPrecision = DEC_MAX_DIGITS;
+constexpr int32_t DecMaxExponent  = DEC_MAX_EMAX;
+constexpr int32_t DecMinExponent  = DEC_MIN_EMIN;
 
 /*!
   \class DecContext
