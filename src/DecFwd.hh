@@ -14,7 +14,7 @@
 #ifndef DECNUMDIGITS
 //! Work with up to 80 digits as default, resulting in 64 bytes
 //! decNumber structure.
-# define DECNUMDIGITS 80
+# define DECNUMDIGITS 480
 #endif
 
 #ifndef DECMAXSTRSIZE
