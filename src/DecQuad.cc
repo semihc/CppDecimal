@@ -15,6 +15,7 @@ extern "C" {
 #include <cstring>
 #include <cassert>
 #include <iostream>
+#include <sstream>
 #include "DecNumber.hh"
 #include "DecPacked.hh"
 #include "DecSingle.hh"
@@ -54,7 +55,65 @@ DecQuad& DecQuad::fromHexString(const char* str)
   for(; i<size; i++,j--)
     p[j] = ba.at(i);
   */
-  assert(0); // TBD
+  
+  // https://stackoverflow.com/questions/3221170/how-to-turn-a-hex-string-into-an-unsigned-char-array
+  clog << "DecQuad fromHexString " << str << endl;
+
+  /*
+  std::istringstream hexstm(string{str});
+  char* a = reinterpret_cast<char*>(&m_data);
+  int i = 0;
+  unsigned c;
+  int dlen = sizeof(m_data);
+
+  while (hexstm >> std::hex >> c) {
+    a[i++] = c;
+    clog << hex << "a[" << i << "]=" << c << endl;
+    if(i>dlen) break;
+  }
+  */
+
+  
+  int slen = strlen(str);
+  char* s = const_cast<char*>(str);
+  constexpr int dlen = sizeof(m_data); 
+  constexpr int half = dlen/2;
+  static_assert(dlen == 16); // Size of DecQuad
+  static_assert(sizeof(long long)*2 == dlen);
+  char* a = reinterpret_cast<char*>(&m_data);
+  //-memset(a, 0, dlen);
+
+  char s1[dlen+1], s2[dlen+1];
+  s1[0] = s2[0] = '\0';
+  strncpy(s1, str, dlen);
+  strncpy(s2, str+dlen, dlen); // Because string could be x2 times of half
+
+  unsigned long long h1, h2;
+  h1 = h2 = 0ULL;
+  h1 = strtoull(s1, nullptr, 16);
+  h2 = strtoull(s2, nullptr, 16);
+
+  clog << std::hex << "h1=" << h1 << " h2=" << h2 << std::dec << endl;
+
+  /*ERASE
+  h1 = strtoull(str, &s, 16);
+  h2 = strtoull(s, nullptr, 16);
+
+  clog << std::hex << "h1=" << h1 << " h2=" << h2 << std::dec << endl;
+  */
+
+  //TBD: Little and big endian analysis needs to be done:
+  memcpy(a, &h2, half);
+  memcpy(&a[half], &h1, half);
+
+
+  /*
+  for (int i=0; i<slen && isxdigit(*s); i++) {
+    a[i] = static_cast<char>(strtol(s, &s, 16));
+    clog << hex << "a[" << i << "]=" << int(a[i]) << endl;
+  }
+  */
+
   return *this;
 }
 

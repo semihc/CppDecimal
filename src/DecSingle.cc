@@ -53,10 +53,11 @@ DecSingle& DecSingle::fromHexString(const char* str)
     p[j] = ba.at(i);
   */
 
-  char *end = nullptr;
-  unsigned long hv = strtoul(str, &end, 16);
+  //-char *end = nullptr;
+  unsigned long hv = strtoul(str, nullptr, 16);
+  static_assert(sizeof(hv) == sizeof(m_data));
+  
   clog << sizeof(hv) << ' ' << sizeof(m_data) << "hv=" << hv << endl;
-  assert(sizeof(hv)==sizeof(m_data));
   memcpy(&m_data, &hv, sizeof(hv));
 
   return *this;

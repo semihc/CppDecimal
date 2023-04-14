@@ -54,10 +54,11 @@ DecDouble& DecDouble::fromHexString(const char* str)
     p[j] = ba.at(i);
   */
 
-  char *end = nullptr;
-  unsigned long long hv = strtoull(str, &end, 16);
+  //- char *end = nullptr;
+  unsigned long long hv = strtoull(str, nullptr, 16);
+  static_assert(sizeof(hv) == sizeof(m_data));
+  
   clog << sizeof(hv) << ' ' << sizeof(m_data) << "hv=" << hv << endl;
-  assert(sizeof(hv)==sizeof(m_data));
   memcpy(&m_data, &hv, sizeof(hv));
 
   return *this;

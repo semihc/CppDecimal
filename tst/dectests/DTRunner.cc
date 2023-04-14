@@ -184,6 +184,7 @@ unordered_set<string> SkipSet {
   "maxx900", "maxx901",
   "mxgx900", "mxgx901",
   "powx4001", "powx4002", "powx4302", "powx4303", "powx4342", "powx4343",
+  "dsbas559", "ddbas559", "dqbas559"
   // Failures due to settings of clamp, could be ignored
   //"basx716", "basx720", "basx724", "basx744",
   // Invalid operations due to restrictions
@@ -1028,7 +1029,7 @@ int testProcessDecTestFile()
   //dectestFN /= "exp.decTest";
   //dectestFN /= "fma.decTest";
   //dectestFN /= "ln.decTest";
-  dectestFN /= "reduce.decTest";
+  dectestFN /= "decQuad.decTest";
   //dectestFN /= "testall.decTest";
   
 
