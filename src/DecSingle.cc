@@ -43,7 +43,9 @@ DecSingle& DecSingle::fromDouble(double d)
 
 DecSingle& DecSingle::fromHexString(const char* str)
 {
-  unsigned long hv = strtoul(str, nullptr, 16);
+  // unsigned long is wider on some platforms, thus
+  uint32_t /*unsigned long*/ hv = strtoul(str, nullptr, 16);
+
   static_assert(sizeof(hv) == sizeof(m_data));  
   memcpy(&m_data, &hv, sizeof(hv));
 

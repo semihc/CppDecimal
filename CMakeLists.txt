@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 add_compile_definitions(DECSUBSET=1)
+set(CMAKE_BUILD_TYPE Debug)
 
 add_subdirectory(src)
 

@@ -32,7 +32,11 @@ auto path_w = fs::path{"C:\\Users\\Marius\\Documents"};
 auto path_p = fs::path{ "/home/marius/docs" };
 
 // Path of the Dectests
+#if defined(_MSC_VER)
 fs::path dectests_path{ R"(C:\opt\CPP\CppDecimal\tst\dectests)" };
+#else
+fs::path dectests_path{ R"(/mnt/c/opt/CPP/CppDecimal/tst/dectests)" };
+#endif
 
 
 
@@ -144,7 +148,7 @@ void visit_directory(
 // Regex definitions for dectest file contents
 //
 regex rxempty {R"(^\s*$)"};
-regex rxcomment {R"(--.*$)"};
+regex rxcomment {R"(--.*)"};
 regex rxcmntline {R"(^(.*)(--.*)$)"};
 // Directive
 // keyword : value
@@ -895,7 +899,7 @@ int procTestCaseLine(string& line)
   if( dpos >= 0) {
     int qpos = line.rfind('\'', dpos); // Check if -- is inside quote
     if( qpos > 0)
-      void; // NOP, Not really a comment
+      (void)0; // NOP, Not really a comment
     else
       line = regex_replace(line, rxcomment, ""); // Remove comment for easy parsing
   }
