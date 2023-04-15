@@ -1029,8 +1029,8 @@ int testProcessDecTestFile()
   //dectestFN /= "exp.decTest";
   //dectestFN /= "fma.decTest";
   //dectestFN /= "ln.decTest";
-  dectestFN /= "decQuad.decTest";
-  //dectestFN /= "testall.decTest";
+  //dectestFN /= "decQuad.decTest";
+  dectestFN /= "testall.decTest";
   
 
   string dtfn = dectestFN.string();

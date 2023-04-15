@@ -43,22 +43,11 @@ DecSingle& DecSingle::fromDouble(double d)
 
 DecSingle& DecSingle::fromHexString(const char* str)
 {
-  /*TODO
-  QByteArray ba = QByteArray::fromHex(str);
-  int size = sizeof(m_data);
-  char* p = (char*)&m_data;
-  int i = 0;
-  int j = size-1;
-  for(; i<size; i++,j--)
-    p[j] = ba.at(i);
-  */
-
-  //-char *end = nullptr;
   unsigned long hv = strtoul(str, nullptr, 16);
-  static_assert(sizeof(hv) == sizeof(m_data));
-  
-  clog << sizeof(hv) << ' ' << sizeof(m_data) << "hv=" << hv << endl;
+  static_assert(sizeof(hv) == sizeof(m_data));  
   memcpy(&m_data, &hv, sizeof(hv));
+
+  //-clog << sizeof(hv) << ' ' << sizeof(m_data) << "hv=" << hv << endl;
 
   return *this;
 }
