@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #add_compile_definitions(DECSUBSET=1)
 #set(CMAKE_BUILD_TYPE Debug)
+if (WIN32)
+  # Concurrent compile support (maybe /FS also?)
+  add_compile_options(/MP)
+endif()
 
 # External dependancies/subprojects
 add_subdirectory(ext)

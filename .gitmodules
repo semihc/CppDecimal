@@ -7,3 +7,6 @@
 [submodule "ext/gflags"]
 	path = ext/gflags
 	url = https://github.com/gflags/gflags.git
+[submodule "ext/abseil-cpp"]
+	path = ext/abseil-cpp
+	url = https://github.com/abseil/abseil-cpp.git
