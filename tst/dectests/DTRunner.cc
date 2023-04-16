@@ -14,6 +14,7 @@
 #include <algorithm>
 // Prj includes
 #include <gtest/gtest.h>
+#include <glog/logging.h>
 #include "DecContext.hh"
 #include "DecNumber.hh"
 #include "DecSingle.hh"
