@@ -14,7 +14,8 @@
 #include <algorithm>
 // Prj includes
 #include <gtest/gtest.h>
-//include <glog/logging.h>
+#include "absl/log/log.h"
+#include "absl/flags/flag.h"
 #include "DecContext.hh"
 #include "DecNumber.hh"
 #include "DecSingle.hh"
@@ -32,6 +33,7 @@ auto path_w = fs::path{"C:\\Users\\Marius\\Documents"};
 // POSIX
 auto path_p = fs::path{ "/home/marius/docs" };
 
+
 // Path of the Dectests
 #if defined(_MSC_VER)
 fs::path dectests_path{ R"(C:\opt\CPP\CppDecimal\tst\dectests)" };
@@ -40,6 +42,8 @@ fs::path dectests_path{ R"(/mnt/c/opt/CPP/CppDecimal/tst/dectests)" };
 #endif
 
 
+ABSL_FLAG(std::string, dectests_dir, "", "dectests directory");
+ABSL_FLAG(std::string, dectest_file, "none", "dectest file");
 
 
 // https://stackoverflow.com/questions/216823/how-to-trim-an-stdstring
@@ -1002,10 +1006,18 @@ int processDecTestFile(string& fileName)
 
 int testProcessDecTestFile()
 {
-  fs::path dectestFN = dectests_path ;
+  string dtdir = absl::GetFlag(FLAGS_dectests_dir);
+  fs::path dectestFN;
+  if(dtdir.empty())
+    dectestFN = dectests_path ;
+  else
+    dectestFN = dtdir;
   //dectestFN /= "dectest_sub";
   dectestFN /= "dectest_ext";
   dectests_path = dectestFN;
+
+
+  string dtfn = absl::GetFlag(FLAGS_dectest_file);
 
   //dectestFN /= "trim0.decTest"; 
   //dectestFN /= "rounding0.decTest"; 
@@ -1027,7 +1039,6 @@ int testProcessDecTestFile()
   //dectestFN /= "randombound320.decTest";
   //dectestFN /= "quantize0.decTest";
   //dectestFN /= "testall0.decTest";
-
   //dectestFN /= "base.decTest";
   //dectestFN /= "add.decTest";
   //dectestFN /= "clamp.decTest";
@@ -1035,11 +1046,13 @@ int testProcessDecTestFile()
   //dectestFN /= "fma.decTest";
   //dectestFN /= "ln.decTest";
   //dectestFN /= "decQuad.decTest";
-  dectestFN /= "testall.decTest";
+  //dectestFN /= "testall.decTest";
   
+  dectestFN /= dtfn;
 
-  string dtfn = dectestFN.string();
-  cout << dtfn << endl;
+  dtfn = dectestFN.string();
+  //-cout << dtfn << endl;
+  LOG(INFO) << "Processing " << dtfn;
 
   return processDecTestFile(dtfn);
 }
