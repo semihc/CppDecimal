@@ -5,13 +5,15 @@
 #include "absl/log/initialize.h"
 #include "absl/log/globals.h"
 #include "absl/log/flags.h"
+#include "spdlog/spdlog.h"
 
 int main(int argc, char **argv) 
 {
   auto remvec = absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
   absl::SetStderrThreshold(absl::LogSeverity::kInfo);
-  //VLOG(1) << "Before InitGoogleTest()";
+  LOG(INFO) << "Before InitGoogleTest()";
+  spdlog::info("Before InitGoogleTest()");
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

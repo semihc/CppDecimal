@@ -18,4 +18,5 @@ target_link_libraries(dectest_runner
     decimal gtest 
     absl::flags absl::flags_parse 
     absl::log absl::log_initialize 
+    spdlog::spdlog
 )
