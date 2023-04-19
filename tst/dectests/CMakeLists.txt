@@ -13,4 +13,9 @@ target_include_directories(dectest_runner
     ${PROJECT_SOURCE_DIR}/src
 )
 
-target_link_libraries(dectest_runner PRIVATE decimal gtest absl::log absl::flags absl::flags_parse)
+target_link_libraries(dectest_runner 
+ PRIVATE 
+    decimal gtest 
+    absl::flags absl::flags_parse 
+    absl::log absl::log_initialize 
+)
