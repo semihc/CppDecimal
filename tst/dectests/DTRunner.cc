@@ -1052,7 +1052,7 @@ int testProcessDecTestFile()
 
   dtfn = dectestFN.string();
   //-cout << dtfn << endl;
-  LOG(INFO) << "Processing " << dtfn;
+  //+LOG(INFO) << "Processing " << dtfn;
 
   return processDecTestFile(dtfn);
 }
