@@ -16,6 +16,10 @@
 
 using namespace std;
 
+
+ABSL_FLAG(int, debug, 0, "Set debug output");
+
+
 int main(int argc, char **argv) 
 {
   int rv = 1; // Failure by default
@@ -23,11 +27,6 @@ int main(int argc, char **argv)
 
   try {
     auto remvec = absl::ParseCommandLine(argc, argv);
-    /*ERASE
-    absl::InitializeLog();
-    absl::SetStderrThreshold(absl::LogSeverity::kInfo);
-    LOG(INFO) << "Before InitGoogleTest()";
-    */
 
     // Prepare the logger
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -46,9 +45,12 @@ int main(int argc, char **argv)
     // Globally register the loggers so the can be accessed using spdlog::get(logger_name)
     spdlog::register_logger(logger);
     logger->set_level(spdlog::level::debug);
-    // Ovwerwrite current logging levels if env vars specified for it
+    // Overwrite current logging levels if env vars specified for it
     spdlog::cfg::load_env_levels();
     spdlog::cfg::load_argv_levels(argc, argv);
+
+    // Set the logger as the default logger
+    spdlog::set_default_logger(logger);
   
     logger->info("{} starting...", exe_name);
 

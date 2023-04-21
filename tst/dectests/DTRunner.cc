@@ -4,6 +4,7 @@
 #include <regex>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <filesystem>
 #include <vector>
 #include <stack>
@@ -16,6 +17,9 @@
 #include <gtest/gtest.h>
 #include "absl/log/log.h"
 #include "absl/flags/flag.h"
+#include "absl/flags/declare.h"
+#include <spdlog/spdlog.h>
+
 #include "DecContext.hh"
 #include "DecNumber.hh"
 #include "DecSingle.hh"
@@ -26,6 +30,30 @@
 using namespace std;
 namespace fs = std::filesystem;
 using namespace dec;
+
+
+enum level_enum_local : int
+{
+    trace = SPDLOG_LEVEL_TRACE,
+    debug = SPDLOG_LEVEL_DEBUG,
+    info = SPDLOG_LEVEL_INFO,
+    warn = SPDLOG_LEVEL_WARN,
+    err = SPDLOG_LEVEL_ERROR,
+    critical = SPDLOG_LEVEL_CRITICAL,
+    off = SPDLOG_LEVEL_OFF,
+    n_levels
+};
+
+struct slog : public std::stringstream
+{
+  spdlog::level::level_enum m_lvl;
+  explicit slog(int lvl) : m_lvl(static_cast<spdlog::level::level_enum>(lvl)) {}
+
+  ~slog() { spdlog::log(m_lvl, this->str()); }
+
+  private:
+    slog();
+};
 
 
 // Windows
@@ -41,6 +69,9 @@ fs::path dectests_path{ R"(C:\opt\CPP\CppDecimal\tst\dectests)" };
 fs::path dectests_path{ R"(/mnt/c/opt/CPP/CppDecimal/tst/dectests)" };
 #endif
 
+
+ABSL_DECLARE_FLAG(int, debug);
+int Dbg = absl::GetFlag(FLAGS_debug);
 
 ABSL_FLAG(std::string, dectests_dir, "", "dectests directory");
 ABSL_FLAG(std::string, dectest_file, "none", "dectest file");
@@ -130,19 +161,19 @@ void visit_directory(
     auto lead = std::string(level*3, ' ');
     for (auto const & entry : fs::directory_iterator(dir))
     {
-      auto filename = entry.path().filename();
+      string filename = entry.path().filename().string();
       if (fs::is_directory(entry.status()))
       {
-        std::cout << lead << "[+]" << filename << '\n';
+        spdlog::info("{} [+] {}", lead, filename);
         if(recursive)
           visit_directory(entry, recursive, level+1);
       }
       else if (fs::is_symlink(entry.status()))
-        std::cout << lead << "[>]" << filename << '\n';
+        spdlog::info("{} [>] {}", lead, filename);
       else if (fs::is_regular_file(entry.status()))
-        std::cout << lead << " " << filename << '\n';
+        spdlog::info("{} {}", lead, filename);
       else
-        std::cout << lead << "[?]" << filename << '\n';
+        spdlog::info("{} [?] {}", lead, filename);
     }
   }
 }
@@ -228,7 +259,7 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
         ctx.setDigits(pval);
     }
     else {
-      clog << "Precison value conversion failed: " << val;
+      slog(err) << "Precison value conversion failed: " << val;
     }    
   }
   else if(dir == "rounding") {
@@ -259,7 +290,7 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
     }
     else {
       rv = -1;
-      clog << "Unknown value for rounding: " << val;
+      slog(err) << "Unknown value for rounding: " << val;
     }
   }
   else if(iequals(dir, "maxexponent")) {
@@ -269,7 +300,7 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
       ctx.setEmax(emax);
     }
     else {
-      clog << "Unrecognized maxexponent: " << val;
+      slog(err) << "Unrecognized maxexponent: " << val;
     }
   }
   else if(dir == "minexponent") {
@@ -279,7 +310,7 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
       ctx.setEmin(emin);
     }
     else {
-      clog << "Unrecognized minexponent: " << val;
+      slog(err) << "Unrecognized minexponent: " << val;
     }
   }
 
@@ -297,7 +328,7 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
       ctx.setExtended(ext); 
     }
     else
-      clog << "Unrecognized extended: " << val;
+      slog(err) << "Unrecognized extended: " << val;
   }
   else if(dir == "clamp") {
     uint8_t clp = static_cast<uint8_t>(std::stoi(val));
@@ -318,8 +349,7 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
     if(dtfn.find(dtext) == string::npos)
       dtfn += dtext; // if test file extension is not specifed, add it
     rv = processDecTestFile(dtfn);
-    if(rv) clog << "Unable to process decTest file: " <<  dtfn << endl;
-    //-return rv;
+    if(rv) slog(err) << "Unable to process decTest file: " <<  dtfn;
   }
 
 
@@ -333,9 +363,7 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
       it->second = val;
     else
       DirvMap.insert({dir, val});
-    //-m_curDirectives.insert(dir, val);
-    clog << "dir=" << dir << " val=" << val;
-    clog << " ctx=" << ctx << endl;
+    slog(debug) << "dir=" << dir << " val=" << val << " ctx=" << ctx;
   }
 
   return rv;
@@ -350,7 +378,6 @@ DecNumber opDo(const string& op,
                DecNumber& n1, DecNumber& n2, DecNumber& n3,
                DecContext& c, string& rs)
 {
-  //- clog << "Operation: " << op << endl;
 
   //
   // Unary operations
@@ -480,7 +507,7 @@ DecNumber opDo(const string& op,
     return n1.fma(n2, n3, &c);
 
   
-  clog << "Unrecognized operation: " << op << endl;
+  slog(err) << "Unrecognized operation: " << op ;
   return DecNumber{};
 }
 
@@ -567,12 +594,6 @@ bool token2DecNumber(const string& token, DecContext& ctx, DecNumber& num)
     
     // '#' in a token by itself
     num.fromString(tt, &c);
-    /*ERASE
-    clog << " ctx_sts=" << c.getStatus()
-         << ' ' << c.statusFlags()
-         << " val=" << num.toString()
-         << endl;
-    */
     return true;
       
   } // contains #
@@ -580,35 +601,25 @@ bool token2DecNumber(const string& token, DecContext& ctx, DecNumber& num)
   if(tt.find('?') != string::npos) {  
     // ? in a token by itself
     num.fromString(tt, &c);
-    /*ERASE
-    clog << " ctx_sts=" << c.getStatus()
-         << ' ' << c.statusFlags()
-         << " val=" << num.toString()
-         << endl;    
-    */
     return true;
   }
 
   // Anything else
-  //-DecContext c(ctx);
-  //-DecContext& c = ctx;
   DecNumber tnum;
   tnum.fromString(tt.data(), &c);
   num = tnum;
 
   //TODO: Check if warning is necessary
   if(c.getStatus()) {
-    clog << "token2DecNumber"
+    slog(warn) 
+         << "token2DecNumber"
          << " tkn=" << token
          //<< " ctx=" << c.statusToString()
          << " ctx_sts=" << c.getStatus()
          << ' ' << c.statusFlags()
-         << " val=" << tnum.toString()
-         << endl;
+         << " val=" << tnum.toString();
 
-    //- clog << "c=" << c << endl;
   }
-  
   
   return true;
 }
@@ -625,34 +636,6 @@ bool DecNumber2token(string& token, const DecNumber& num)
 
 int getDirectivesContext(DecContext& ctx, bool precision)
 {
-  /*ERASE
-  QMapIterator<QString, QString> i(m_curDirectives);
-  QStringList tokens;
-  
-  while(i.hasNext()) {
-    i.next();
-    if(!precision) {
-      if(i.key() == "precision")
-        continue; // Ignore precison directives if not wanted
-    }
-    tokens.clear();
-    tokens << i.key() << i.value();
-    applyTestDirective(tokens, ctx);
-  }
-
-  // If precision is not wanted, pick largest exponent values
-  // to avoid rounding
-  if(!precision) {
-    ctx.setEmax(QDecMaxExponent); 
-    ctx.setEmin(QDecMinExponent); 
-  }
-
-  if(ctx.status())
-    qWarning() << "getDirectivesContext ctx=" << ctx.statusToString();
-  //qDebug() << "getDirectivesContext ctx=" << ctx;
-  
-  return 0;
-  */
   return 0;
 }
 
@@ -660,9 +643,9 @@ int getDirectivesContext(DecContext& ctx, bool precision)
 
 void displayDirectivesContext()
 {
-  clog << "Directives in effect: " << endl;
+  slog(info) << "Directives in effect: ";
   for( auto& mi : DirvMap) 
-    clog << '\t' << mi.first << ':' << mi.second << endl;
+    slog(info) << '\t' << mi.first << ':' << mi.second ;
 }
 
 
@@ -681,7 +664,7 @@ int applyTestCase(string& tc_id,
 
   // Check if the test case is to be skipped
   if(SkipSet.find(tc_id) != SkipSet.end()) {
-    clog << "IGNORE: " << tc_id << endl;
+    slog(info) << "IGNORE: " << tc_id ;
     return 0;
   }
 
@@ -701,7 +684,6 @@ int applyTestCase(string& tc_id,
   bool is_rs_used = false; // Is result string used?
 
  
-  
   // Apply current context to operands now
   if(tc_op=="tosci" ||
      tc_op=="toeng" ||
@@ -710,10 +692,7 @@ int applyTestCase(string& tc_id,
     is_rs_used = true;
     if(tc_op=="apply") is_rs_used = false;
     std::erase(erv, '\''); 
-    //erv.erase(std::remove(erv.begin(), erv.end(), '\''), erv.end());
-    //-res.remove(QChar('\''));
   }
-
 
   // Expected result will get maximum allowable precision
   cc = ctx;
@@ -753,13 +732,6 @@ int applyTestCase(string& tc_id,
     cc_sts |= cc.getStatus();
   }
 
-  /*ERASE
-  clog << "cc: " << cc << " cc_sts:" << cc_sts;
-  if (cc_sts) clog << " flg=" << cc.statusFlags();
-  clog << endl ;
-  */
-
-
   // Get context directives including precision
   getDirectivesContext(oc, true);
   oc = ctx; // Get current global context by copying
@@ -772,12 +744,6 @@ int applyTestCase(string& tc_id,
   if(tc_rv=="?") { 
     // Result is undefined, therefore is true by default
     ret = true;
-    /*ERASE
-    if(oc.getStatus()) {
-      clog << "applyTestCase ctx=" << oc.statusToString()
-           << " flg=" << oc.statusFlags()
-           << endl;
-    } */
   }
   else {
     if(tc_op == "tosci" ||
@@ -799,13 +765,6 @@ int applyTestCase(string& tc_id,
     }
   }    
   
-  /*ERASE
-  oc_sts = oc.getStatus();
-  clog << "oc: " << oc << " oc_sts:" << oc_sts;
-  if (oc_sts) clog << " flg=" << oc.statusFlags();
-  clog << endl ;
-  */
-
   if(tc_cd.size() && tc_rv.find('?')==string::npos) {
     // Only inspect the test cases where result is not ? and conditions are not empty
     DecContext ec{oc};
@@ -822,19 +781,18 @@ int applyTestCase(string& tc_id,
     oc_sts = oc.getStatus();
     uint32_t ac_sts = oc_sts | cc_sts; // All status code = Operation | Conversion codes
     if(ac_sts != ec_sts)
-      clog << "WARNING: " << tc_cd << ' ' << '(' << cc_sts << '|' << oc_sts << ") "
-           << ac_sts << "!=" << ec_sts << endl;
+      slog(warn) << "WARNING: " << tc_cd << ' ' << '(' << cc_sts << '|' << oc_sts << ") "
+           << ac_sts << "!=" << ec_sts;
   }
-
 
 
   EXPECT_TRUE(ret);
   if(ret) {
     //-clog << "PASS: " << tokens.join(",");
     //-clog << "PASS: " << tc_id << ' ';
-    clog << "PASS: " << tc_id << ' ';
+    slog(info) << "PASS: " << tc_id << ' '
     // Uncomment to receive more information about passing test cases: 
-    clog << " n1=" << n1.toString().data()
+             << " n1=" << n1.toString().data()
              << " n2=" << n2.toString().data()
              << " r="
              << (is_rs_used ? rs.data() : r.toString().data())
@@ -842,48 +800,43 @@ int applyTestCase(string& tc_id,
              << " prc=" << oc.getDigits()
              //<< " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
              << " ctx_sts=" << oc.getStatus()
-             << (is_rs_used ?  string(" rs=") + erv + "?=" + rs + "|": "")
-             << endl;
+             << (is_rs_used ?  string(" rs=") + erv + "?=" + rs + "|": "") ;
+
 
     return 0; // Success
   }
   else {
 
-    clog << "cc: " << cc << " cc_sts:" << cc_sts;
-    if (cc_sts) clog << " flg=" << cc.statusFlags();
-    clog << endl ;
+    slog(info) << "cc: " << cc << " cc_sts:" << cc_sts;
+    if (cc_sts) slog(info) << " flg=" << cc.statusFlags() ;
 
     oc_sts = oc.getStatus();
-    clog << "oc: " << oc << " oc_sts:" << oc_sts;
-    if (oc_sts) clog << " flg=" << oc.statusFlags();
-    clog << endl ;
+    slog(info) << "oc: " << oc << " oc_sts:" << oc_sts;
+    if (oc_sts) slog(info) << " flg=" << oc.statusFlags();
 
     //-clog << "FAIL: " << tokens.join(",");
-    clog << "FAIL: " << tc_id << ' ';
-    clog << " n1=" << n1.toString().data()
-             << " n2=" << n2.toString().data()
-             << " n3=" << n3.toString().data()
-             << " r="
-             << (is_rs_used ? rs.data() : r.toString().data())
-             << " e=" << e.toString().data()
-             << " prc=" << oc.getDigits()
-             //<< " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
-             << " ctx_sts=" << oc.getStatus()
-             << (is_rs_used ?  string(" rs=") + erv + "?=" + rs + "|": "")
-             << endl;
+    slog(warn) 
+            << "FAIL: " << tc_id << ' '
+            << " n1=" << n1.toString().data()
+            << " n2=" << n2.toString().data()
+            << " n3=" << n3.toString().data()
+            << " r="
+            << (is_rs_used ? rs.data() : r.toString().data())
+            << " e=" << e.toString().data()
+            << " prc=" << oc.getDigits()
+            //<< " ctx=" << (oc.getStatus() ? oc.statusToString() : "")
+            << " ctx_sts=" << oc.getStatus()
+            << (is_rs_used ?  string(" rs=") + erv + "?=" + rs + "|": "") ;
+
     
 
     // Print out operation context
     //- clog << "oc: " << oc;
     // Print out prevailing context settings
     displayDirectivesContext();
-    // Uncomment this if you want to stop the test cases after failure
-    //qFatal("End");                    
     return 1; // Failure
   }
   
-
-
   return rv;
 }
 
@@ -912,7 +865,7 @@ int procTestCaseLine(string& line)
   // EMPTY LINE
   trim(line);
   if( line.empty() ) {
-    cout << "EMPTY LINE" << endl; 
+    slog(info) << "EMPTY LINE" ; 
     return rv;
   }
 
@@ -920,7 +873,7 @@ int procTestCaseLine(string& line)
   if(line.rfind(':') > 0 && regex_search(line, match, rxdirective)) {
     string dir = match.str(1);
     string val = match.str(2);
-    cout << "DIRECTIVE LINE: (" << dir << ':' << val << ')' << endl;
+    slog(info) << "DIRECTIVE LINE: (" << dir << ':' << val << ')' ;
     rv = applyTestDirective(dir, val, ctx);
     return rv;
   }
@@ -943,7 +896,7 @@ int procTestCaseLine(string& line)
       string tc_a3 = match_lhs.str(5);  // Argument #3 to the test case operation
       string tc_rv = match_rhs.str(1);  // Test case result or expected value
       string tc_cd = match_rhs.str(2);  // Test case conditions
-    cout << "TESTCASE LINE: (" 
+    slog(info) << "TESTCASE LINE: (" 
       << tc_id << ','
       << tc_op << ','
       << tc_a1 << ','
@@ -952,7 +905,7 @@ int procTestCaseLine(string& line)
       << "->"
       << tc_rv << ','
       << tc_cd
-      << ")" << endl;
+      << ")";
 
     rv = applyTestCase(tc_id, tc_op, tc_a1, tc_a2, tc_a3, tc_rv, tc_cd, ctx);
     return rv;
@@ -961,7 +914,7 @@ int procTestCaseLine(string& line)
 
   
   rv = 1;
-  cout << "UNRECOGNIZED LINE " << dpos << '|' << line << '|' << endl;
+  slog(err) << "UNRECOGNIZED LINE " << dpos << '|' << line << '|';
 
   return rv;
 }
@@ -974,13 +927,13 @@ int processDecTestFile(string& fileName)
 {
   int rv = 1;
   if(! std::filesystem::exists(fileName)) {
-    clog << "Unable to locate file " << fileName << endl;
+    slog(err) << "Unable to locate file " << fileName ;
     return rv;
   }
 
   ifstream ifile(fileName);  
   if(!ifile.good()) {
-    clog << "Unable to open file " << fileName << endl;
+    slog(err) << "Unable to open file " << fileName ;
     return rv;
   }
 
@@ -993,7 +946,7 @@ int processDecTestFile(string& fileName)
     ifile.close();
   }
   else {
-    clog << "File " << fileName << " is not open" << endl;
+    slog(err) << "File " << fileName << " is not open";
   }
 
   return rv;
@@ -1012,8 +965,8 @@ int testProcessDecTestFile()
     dectestFN = dectests_path ;
   else
     dectestFN = dtdir;
-  //dectestFN /= "dectest_sub";
-  dectestFN /= "dectest_ext";
+  dectestFN /= "dectest_sub";
+  //dectestFN /= "dectest_ext";
   dectests_path = dectestFN;
 
 

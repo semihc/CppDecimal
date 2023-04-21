@@ -19,8 +19,11 @@ extern "C" {
 #include "DecDouble.hh"
 #include "DecQuad.hh"
 #include "DecPacked.hh"
+
 #include <cstdlib>
 #include <iostream>
+
+#include "short_alloc.h"
 
 using namespace std;
 
