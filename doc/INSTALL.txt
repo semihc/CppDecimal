@@ -1,3 +1,9 @@
+CHECKOUT
+~~~~~~~~
+Checkout from the github with submodules also.
+0) git clone https://github.com/semihc/CppDecimal.git --recurse-submodules
+# Don't forget to descend into the base of the source directory:
+cd CppDecimal/
 
 BUILDING
 ~~~~~~~~
