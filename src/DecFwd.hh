@@ -12,14 +12,14 @@
  */
 
 #ifndef DECNUMDIGITS
-//! Work with up to 80 digits as default, resulting in 64 bytes
+//! Work with up to 500 digits as default, resulting in 251 bytes
 //! decNumber structure.
-# define DECNUMDIGITS 480
+# define DECNUMDIGITS 500
 #endif
 
 #ifndef DECMAXSTRSIZE
 //! Maximum length of a conversion string, default if not specified
-# define DECMAXSTRSIZE 512
+# define DECMAXSTRSIZE 1024
 #endif
 
 //! Extended flags are used by default

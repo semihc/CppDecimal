@@ -27,24 +27,32 @@ int main(int argc, char **argv)
 
   try {
     auto remvec = absl::ParseCommandLine(argc, argv);
+    int dbg = absl::GetFlag(FLAGS_debug);
 
     // Prepare the logger
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    console_sink->set_level(spdlog::level::info);
     console_sink->set_pattern("%C%m%d%H%M%S [%^%l%$] %v");
+    console_sink->set_level(spdlog::level::trace) ;
     
-    // Create a file rotating logger with 5mb size max and 3 rotated files
-    auto max_size = 1048576 * 5;
-    auto max_files = 3;
+    // Create a file rotating logger with 10mb size max and 5 rotated files
+    auto max_size = 1048576 * 10;
+    auto max_files = 5;
     auto rfile_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("dectests.log", max_size, max_files, false);
-    rfile_sink->set_level(spdlog::level::trace);
     rfile_sink->set_pattern("%C%m%d%H%M%S.%e[%n-%P-%t-%l] %v");
+    rfile_sink->set_level(spdlog::level::trace);
 
     // Create main/root logger (make_shared did not work)
     std::shared_ptr<spdlog::logger> logger(new spdlog::logger("main", {console_sink, rfile_sink}) );
     // Globally register the loggers so the can be accessed using spdlog::get(logger_name)
     spdlog::register_logger(logger);
-    logger->set_level(spdlog::level::debug);
+    // Default logging level
+    logger->set_level(spdlog::level::info); 
+    // Cater for mor elevated debug logs if needed
+    if(dbg > 1)
+      logger->set_level(spdlog::level::trace); 
+    else if (dbg > 0 )
+      logger->set_level(spdlog::level::debug); 
+    
     // Overwrite current logging levels if env vars specified for it
     spdlog::cfg::load_env_levels();
     spdlog::cfg::load_argv_levels(argc, argv);

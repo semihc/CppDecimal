@@ -13,6 +13,7 @@
 #include <cctype>
 #include <locale>
 #include <algorithm>
+#include <source_location>
 // Prj includes
 #include <gtest/gtest.h>
 #include "absl/log/log.h"
@@ -32,6 +33,7 @@ namespace fs = std::filesystem;
 using namespace dec;
 
 
+// Enumerated values for spdlog levels
 enum level_enum_local : int
 {
     trace = SPDLOG_LEVEL_TRACE,
@@ -44,6 +46,8 @@ enum level_enum_local : int
     n_levels
 };
 
+
+// Utility class to allow stream inserters on spdlog
 struct slog : public std::stringstream
 {
   spdlog::level::level_enum m_lvl;
@@ -56,25 +60,18 @@ struct slog : public std::stringstream
 };
 
 
-// Windows
-auto path_w = fs::path{"C:\\Users\\Marius\\Documents"};
-// POSIX
-auto path_p = fs::path{ "/home/marius/docs" };
+// Current source location
+const source_location Loc = source_location::current();
 
-
-// Path of the Dectests
-#if defined(_MSC_VER)
-fs::path dectests_path{ R"(C:\opt\CPP\CppDecimal\tst\dectests)" };
-#else
-fs::path dectests_path{ R"(/mnt/c/opt/CPP/CppDecimal/tst/dectests)" };
-#endif
-
+// Path/directory that DecTest files reside
+fs::path DecTestsDir = fs::path(Loc.file_name()).remove_filename();
 
 ABSL_DECLARE_FLAG(int, debug);
 int Dbg = absl::GetFlag(FLAGS_debug);
 
 ABSL_FLAG(std::string, dectests_dir, "", "dectests directory");
-ABSL_FLAG(std::string, dectest_file, "none", "dectest file");
+ABSL_FLAG(std::string, dectest_file, "", "dectest file");
+ABSL_FLAG(bool, extended, false, "Use extended tests");
 
 
 // https://stackoverflow.com/questions/216823/how-to-trim-an-stdstring
@@ -214,6 +211,7 @@ int processDecTestFile(string& fileName);
 
 // Initiase the set of test cases to be skipped
 unordered_set<string> SkipSet {
+  // Invalid operations due to restrictions, or other limitations
   "basx559", "basx716", "basx720", "basx724", "basx744",
   "addx1130", "cotx9990", "cotx9991",
   "ctmx9990", "ctmx9991",
@@ -225,11 +223,6 @@ unordered_set<string> SkipSet {
   "mxgx900", "mxgx901",
   "powx4001", "powx4002", "powx4302", "powx4303", "powx4342", "powx4343",
   "dsbas559", "ddbas559", "dqbas559"
-  // Failures due to settings of clamp, could be ignored
-  //"basx716", "basx720", "basx724", "basx744",
-  // Invalid operations due to restrictions
-  //"pwsx805", "powx4302", "powx4303", "powx4342", "powx4343", "lnx116", "lnx732", 
-  //"expx901", "expx902", "lnx901", "lnx902", "logx901", "logx902", "powx4001", "powx4002"
 };
 
 
@@ -342,7 +335,7 @@ int applyTestDirective(string& dir, string& val, DecContext& ctx)
   }
   else if(dir == "dectest") {
     // Process the test cases in a file
-    fs::path dectestFN = dectests_path;
+    fs::path dectestFN = DecTestsDir;
     dectestFN /= val ;
     string dtfn = dectestFN.string();
     string dtext = ".decTest";
@@ -815,7 +808,7 @@ int applyTestCase(string& tc_id,
     if (oc_sts) slog(info) << " flg=" << oc.statusFlags();
 
     //-clog << "FAIL: " << tokens.join(",");
-    slog(warn) 
+    slog(err) 
             << "FAIL: " << tc_id << ' '
             << " n1=" << n1.toString().data()
             << " n2=" << n2.toString().data()
@@ -843,7 +836,7 @@ int applyTestCase(string& tc_id,
 
 int procTestCaseLine(string& line)
 {
-  cout << line << endl;
+  slog(debug) << line ;
   smatch match;  
   smatch match_lhs;  
   smatch match_rhs;  
@@ -865,7 +858,7 @@ int procTestCaseLine(string& line)
   // EMPTY LINE
   trim(line);
   if( line.empty() ) {
-    slog(info) << "EMPTY LINE" ; 
+    slog(trace) << "EMPTY LINE" ; 
     return rv;
   }
 
@@ -959,60 +952,54 @@ int processDecTestFile(string& fileName)
 
 int testProcessDecTestFile()
 {
+  // Specfied directory that decTest files are in
   string dtdir = absl::GetFlag(FLAGS_dectests_dir);
+  // Individual decTest file name
+  string dtfn = absl::GetFlag(FLAGS_dectest_file);
+  // Extended tests versus subset?
+  bool extended = absl::GetFlag(FLAGS_extended);
+
+  fs::path cwd = std::filesystem::current_path();
   fs::path dectestFN;
+
   if(dtdir.empty())
-    dectestFN = dectests_path ;
+    dectestFN = DecTestsDir ;
   else
     dectestFN = dtdir;
-  dectestFN /= "dectest_sub";
-  //dectestFN /= "dectest_ext";
-  dectests_path = dectestFN;
 
+  if(extended) {
+    dectestFN /= "dectest_ext";
+    if(dtfn.empty()) dtfn = "testall.decTest";
 
-  string dtfn = absl::GetFlag(FLAGS_dectest_file);
-
-  //dectestFN /= "trim0.decTest"; 
-  //dectestFN /= "rounding0.decTest"; 
+  }
+  else {
+    dectestFN /= "dectest_sub";
+    if(dtfn.empty()) dtfn = "testall0.decTest";
+  }
   
-  //dectestFN /= "abs0.decTest"; 
-  //dectestFN /= "add0.decTest"; 
-  //dectestFN /= "base0.decTest";
-  //dectestFN /= "compare0.decTest";
-  //dectestFN /= "comparetotal0.decTest";
-  //dectestFN /= "divide0.decTest";
-  //dectestFN /= "divideint0.decTest";
-  //dectestFN /= "exp0.decTest";
-  //dectestFN /= "fma0.decTest";
-  //dectestFN /= "inexact0.decTest";
-  //dectestFN /= "ln0.decTest";
-  //dectestFN /= "log100.decTest";
-  //dectestFN /= "max0.decTest";
-  //dectestFN /= "min0.decTest";
-  //dectestFN /= "randombound320.decTest";
-  //dectestFN /= "quantize0.decTest";
-  //dectestFN /= "testall0.decTest";
-  //dectestFN /= "base.decTest";
-  //dectestFN /= "add.decTest";
-  //dectestFN /= "clamp.decTest";
-  //dectestFN /= "exp.decTest";
-  //dectestFN /= "fma.decTest";
-  //dectestFN /= "ln.decTest";
-  //dectestFN /= "decQuad.decTest";
-  //dectestFN /= "testall.decTest";
-  
+  // The path that decTest file reside
+  DecTestsDir = dectestFN;
+
+  // Now construct the full path of the test file
   dectestFN /= dtfn;
-
+  // in string
   dtfn = dectestFN.string();
-  //-cout << dtfn << endl;
-  //+LOG(INFO) << "Processing " << dtfn;
-
+  // exececute the tests and return the outcome
   return processDecTestFile(dtfn);
 }
 
+
+
 int testVisitDirectory()
 {
-  visit_directory(dectests_path, true, 2);
+  fs::path dtpath = fs::current_path();
+  // Specfied directory that decTest files are in
+  string dtdir = absl::GetFlag(FLAGS_dectests_dir);
+  if(dtdir.size())
+    dtpath = dtdir;
+  
+
+  visit_directory(dtpath, true, 2);
   return 0;
 }
 

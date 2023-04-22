@@ -49,18 +49,24 @@ DecQuad& DecQuad::fromHexString(const char* str)
   constexpr int dlen = sizeof(m_data); 
   constexpr int half = dlen/2;
   static_assert(dlen == 16); // Size of DecQuad
-  static_assert(sizeof(long long)*2 == dlen);
+  //-static_assert(sizeof(long long)*2 == dlen);
+  static_assert(sizeof(uint64_t)*2 == dlen);
  
   int slen = strlen(str);
   char* s = const_cast<char*>(str);
   char* a = reinterpret_cast<char*>(&m_data);
 
   char s1[dlen+1], s2[dlen+1];
-  s1[0] = s2[0] = '\0';
+  memset(s1, 0, dlen+1);
+  memset(s2, 0, dlen+1);
+  //-s1[0] = s2[0] = '\0';
   strncpy(s1, str, dlen);
   strncpy(s2, str+dlen, dlen); // Because string could be x2 times of half
 
-  unsigned long long h1, h2;
+  //clog << "s1=" << s1 << " s2=" << s2 << endl;
+
+  //-unsigned long long h1, h2;
+  uint64_t h1, h2;
   h1 = h2 = 0ULL;
   h1 = strtoull(s1, nullptr, 16);
   h2 = strtoull(s2, nullptr, 16);
@@ -78,7 +84,8 @@ DecQuad& DecQuad::fromHexString(const char* str)
     memcpy(&a[half], &h2, half);
   }
 
-  //-clog << std::hex << "h1=" << h1 << " h2=" << h2 << std::dec << endl;
+
+  //clog << std::hex << "h1=" << h1 << " h2=" << h2 << std::dec << endl;
 
   return *this;
 }

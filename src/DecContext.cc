@@ -122,7 +122,9 @@ ostream& operator<<(ostream& os, const DecContext& ctx)
      << c << "traps=" << ctx.traps
      << c << "status=" << ctx.status
      << c << "clamp=" << (unsigned) ctx.clamp
+     #if DECSUBSET
      << c << "extended=" << (unsigned) ctx.extended     
+     #endif
      << c << ctx.statusToString();
   
   return os;

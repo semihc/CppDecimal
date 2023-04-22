@@ -4,8 +4,6 @@ project(CppDecimal VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED OFF)
 
-#add_compile_definitions(DECSUBSET=1)
-#set(CMAKE_BUILD_TYPE Debug)
 if (WIN32)
   # Concurrent compile support (maybe /FS also?)
   add_compile_options(/MP)
